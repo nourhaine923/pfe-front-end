@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { 
@@ -12,13 +11,14 @@ import {
   User,
   Droplet,
   Activity,
-  Calendar
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 
 import CreatePatientModal from "@/components/modals/CreatePatientModal"
 import DeletePatientModal from "@/components/modals/DeletePatientModal"
 import UpdatePatientModal from "@/components/modals/UpdatePatientModal"
-import ViewPatientModal from "@/components/modals/ViewPatientModal"
 import Toast from "@/components/ui/Toast"
 
 import { useAuth } from "@/features/auth/context"
@@ -42,33 +42,86 @@ export default function PatientsPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [allPatients, setAllPatients] = useState<Patient[]>([])
+  const [displayedPatients, setDisplayedPatients] = useState<Patient[]>([])
   const [search, setSearch] = useState("")
   const [selectedFilter, setSelectedFilter] = useState<string>("all")
+  const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState<{ message: string; type?: string } | null>(null)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalPatients, setTotalPatients] = useState(0)
+  const itemsPerPage = 10
 
   const [createOpen, setCreateOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [updateOpen, setUpdateOpen] = useState(false)
-  const [viewOpen, setViewOpen] = useState(false)
 
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null)
   const [selectedPatientData, setSelectedPatientData] = useState<Patient | null>(null)
-  const [selectedPatientForView, setSelectedPatientForView] = useState<Patient | null>(null)
 
-  const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState<string | null>(null)
-
-  // Fetch Patients
+  // Fetch all patients from backend (with search, no pagination)
   const fetchPatients = async () => {
     try {
       setLoading(true)
-      const res = await api.get("/patients")
-      setPatients(res.data)
+      
+      const params: any = {}
+      if (search.trim()) {
+        params.search = search.trim()
+      }
+      
+      const res = await api.get("/patients/all", { params })
+      const patientsData = Array.isArray(res.data) ? res.data : []
+      setAllPatients(patientsData)
+      
+      applyFilterAndPagination(patientsData, selectedFilter, currentPage)
+      
     } catch (err) {
       console.error("Error fetching patients:", err)
+      showToast("Failed to load patients", "error")
     } finally {
       setLoading(false)
     }
+  }
+
+  const applyFilterAndPagination = (patients: Patient[], filter: string, page: number) => {
+    let filtered = patients
+    if (filter !== "all") {
+      filtered = patients.filter(p => p.patientRole === filter)
+    }
+    
+    setTotalPatients(filtered.length)
+    setTotalPages(Math.ceil(filtered.length / itemsPerPage))
+    
+    const start = (page - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    setDisplayedPatients(filtered.slice(start, end))
+  }
+
+  const handleFilterChange = (filter: string) => {
+    setSelectedFilter(filter)
+    setCurrentPage(1)
+    applyFilterAndPagination(allPatients, filter, 1)
+  }
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      applyFilterAndPagination(allPatients, selectedFilter, page)
+    }
+  }
+
+  const handleSearch = () => {
+    setCurrentPage(1)
+    fetchPatients()
+  }
+
+  const clearSearch = () => {
+    setSearch("")
+    setCurrentPage(1)
+    fetchPatients()
   }
 
   useEffect(() => {
@@ -82,158 +135,139 @@ export default function PatientsPage() {
     fetchPatients()
   }, [authLoading, user, router])
 
-  // Enhanced search and filter logic
-  const filteredPatients = patients.filter((p) => {
-    const searchTerm = search.toLowerCase()
-    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase()
-    
-    let mrn = ""
-    if (p.medicalRecordNumber !== null && p.medicalRecordNumber !== undefined) {
-      mrn = p.medicalRecordNumber.toString().toLowerCase()
-    }
-    
-    const matchesSearch = fullName.includes(searchTerm) || mrn.includes(searchTerm)
-    
-    // Filter by patient role
-    const matchesFilter = selectedFilter === "all" || p.patientRole === selectedFilter
-    
-    return matchesSearch && matchesFilter
-  })
-
-  // Get unique patient roles for filter dropdown
-  const patientRoles = ["all", ...new Set(patients.map(p => p.patientRole).filter(Boolean))]
-
-  // Stats
-  const totalPatients = patients.length
-  const activePatients = patients.filter(p => p.patientRole === "ACTIVE").length
-  const transplantPatients = patients.filter(p => p.patientRole === "TRANSPLANT").length
-
-  const showToast = (message: string) => {
-    setToast(message)
+  const showToast = (message: string, type: "success" | "error" | "warning" = "success") => {
+    setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
   }
 
   const getBloodGroupColor = (bloodGroup: string) => {
     const colors: Record<string, string> = {
-      "A+": "bg-green-100 text-green-800",
-      "A-": "bg-green-100 text-green-800",
-      "B+": "bg-blue-100 text-blue-800",
-      "B-": "bg-blue-100 text-blue-800",
-      "O+": "bg-purple-100 text-purple-800",
-      "O-": "bg-purple-100 text-purple-800",
-      "AB+": "bg-yellow-100 text-yellow-800",
-      "AB-": "bg-yellow-100 text-yellow-800",
+      "A+": "bg-amber-50 text-amber-700",
+      "A-": "bg-amber-50 text-amber-700",
+      "B+": "bg-sky-50 text-sky-700",
+      "B-": "bg-sky-50 text-sky-700",
+      "O+": "bg-emerald-50 text-emerald-700",
+      "O-": "bg-emerald-50 text-emerald-700",
+      "AB+": "bg-purple-50 text-purple-700",
+      "AB-": "bg-purple-50 text-purple-700",
     }
-    return colors[bloodGroup] || "bg-gray-100 text-gray-800"
+    return colors[bloodGroup] || "bg-gray-100 text-gray-700"
   }
 
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
-      "ACTIVE": "bg-blue-100 text-blue-800",
-      "TRANSPLANT": "bg-green-100 text-green-800",
-      "DIALYSIS": "bg-orange-100 text-orange-800",
-      "FOLLOW_UP": "bg-purple-100 text-purple-800",
+      "recipient": "bg-green-900 text-green-50", 
+      "donor": "bg-green-100 text-green-900",  
     }
-    return colors[role] || "bg-gray-100 text-gray-800"
+    return colors[role] || "bg-gray-100 text-gray-700"
   }
+
+  const recipientCount = allPatients.filter(p => p.patientRole === "recipient").length
+  const donorCount = allPatients.filter(p => p.patientRole === "donor").length
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#235347] mx-auto"></div>
+          <p className="mt-4 text-gray-500">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">Patient Management</h1>
-          <p className="text-gray-600 text-center">Manage and track all patient records</p>
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-green-800 mb-2">Patient Management</h1>
+          <p className="text-[#235347]">Manage and track all patient records</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+        {/* Stats Cards with Left Border Accent */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 border-l-4  hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Patients</p>
-                <p className="text-3xl font-bold text-gray-900">{totalPatients}</p>
+                <p className="text-sm text-[#235347] mb-1">Total Patients</p>
+                <p className="text-3xl font-bold text-[#163832]">{allPatients.length}</p>
               </div>
-              <div className="bg-blue-100 rounded-full p-3">
-                <User className="h-6 w-6 text-blue-600" />
+              <div className="bg-green-800 rounded-full p-3">
+                <User className="h-6 w-6 text-[#DAF1DE]" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 border-l-4  hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Active Patients</p>
-                <p className="text-3xl font-bold text-gray-900">{activePatients}</p>
+                <p className="text-sm text-[#235347] mb-1">Recipients</p>
+                <p className="text-3xl font-bold text-[#163832]">{recipientCount}</p>
               </div>
-              <div className="bg-green-100 rounded-full p-3">
-                <Activity className="h-6 w-6 text-green-600" />
+              <div className="bg-green-800 rounded-full p-3">
+                <User className="h-6 w-6 text-[#DAF1DE]" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 border-l-4  hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Transplant Patients</p>
-                <p className="text-3xl font-bold text-gray-900">{transplantPatients}</p>
+                <p className="text-sm text-[#235347] mb-1">Donors</p>
+                <p className="text-3xl font-bold text-[#163832]">{donorCount}</p>
               </div>
-              <div className="bg-purple-100 rounded-full p-3">
-                <Droplet className="h-6 w-6 text-purple-600" />
+              <div className="bg-green-800 rounded-full p-3">
+                <User className="h-6 w-6 text-[#DAF1DE]" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Search and Filter Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#8EB69B]" />
               <input
                 type="text"
                 placeholder="Search by name or medical record number..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#235347] focus:border-transparent outline-none transition-all bg-gray-50"
               />
               {search && (
                 <button
-                  onClick={() => setSearch("")}
+                  onClick={clearSearch}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2"
                 >
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <X className="h-5 w-5 text-gray-400 hover:text-[#9B2B26]" />
                 </button>
               )}
             </div>
             
             <select
               value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+              onChange={(e) => handleFilterChange(e.target.value)}
+              className="px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#235347] focus:border-transparent outline-none bg-gray-50 text-[#163832]"
             >
-              {patientRoles.map(role => (
-                <option key={role} value={role}>
-                  {role === "all" ? "All Patients" : role.replace("_", " ")}
-                </option>
-              ))}
+              <option value="all">All Patients</option>
+              <option value="recipient">Recipients</option>
+              <option value="donor">Donors</option>
             </select>
             
             <button
+              onClick={handleSearch}
+              className="inline-flex items-center px-6 py-2.5 bg-[#235347] text-white rounded-xl hover:bg-[#163832] hover:text-white transition-colors focus:ring-2 focus:ring-[#5A94C1] focus:ring-offset-2"
+            >
+              <Search className="h-5 w-5 mr-2" />
+              Search
+            </button>
+            
+            <button
               onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex items-center px-6 py-2.5 bg-[#235347] text-white rounded-xl hover:bg-[#163832] hover:text-white transition-colors focus:ring-2 focus:ring-[#5A94C1] focus:ring-offset-2"
             >
               <Plus className="h-5 w-5 mr-2" />
               Create Patient
@@ -243,98 +277,150 @@ export default function PatientsPage() {
 
         {/* Patients Table */}
         {loading ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading patients...</p>
+          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+            <Loader2 className="animate-spin h-12 w-12 text-[#235347] mx-auto" />
+            <p className="mt-4 text-gray-500">Loading patients...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MRN</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sex</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blood Group</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPatients.length === 0 ? (
+          <>
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-100">
+                  <thead className="bg-[#235347]">
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                        {search ? "No patients found matching your search" : "No patients available"}
-                      </td>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">MRN</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Patient Name</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Gender</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Blood Group</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">Actions</th>
                     </tr>
-                  ) : (
-                    filteredPatients.map((patient) => (
-                      <tr key={patient._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-mono font-medium text-gray-900">
-                            {patient.medicalRecordNumber || "N/A"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {patient.firstName} {patient.lastName}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600">{patient.sex}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getBloodGroupColor(patient.bloodGroup)}`}>
-                            {patient.bloodGroup}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(patient.patientRole)}`}>
-                            {patient.patientRole.replace("_", " ")}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              onClick={() => {
-                                setSelectedPatientForView(patient)
-                                setViewOpen(true)
-                              }}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedPatientData(patient)
-                                setUpdateOpen(true)
-                              }}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedPatient(patient._id)
-                                setDeleteOpen(true)
-                              }}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {displayedPatients.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                          {search ? "No patients found matching your search" : "No patients available"}
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      displayedPatients.map((patient) => (
+                        <tr key={patient._id} className="hover:bg-gray-200 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-mono text-gray-800">
+                              {patient.medicalRecordNumber || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-800">
+                              {patient.firstName} {patient.lastName}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-800">{patient.sex}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getBloodGroupColor(patient.bloodGroup)}`}>
+                              {patient.bloodGroup}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(patient.patientRole)}`}>
+                              {patient.patientRole === "recipient" ? "Recipient" : "Donor"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end space-x-1">
+                              <button
+                                onClick={() => router.push(`/patients/${patient._id}`)}
+                                className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedPatientData(patient)
+                                  setUpdateOpen(true)
+                                }}
+                                className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Update"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedPatient(patient._id)
+                                  setDeleteOpen(true)
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-[#235347]">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalPatients)} of {totalPatients} patients
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-[#235347] hover:bg-[#235347] disabled:opacity-50 transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => goToPage(pageNum)}
+                          className={`px-3 py-2 rounded-lg transition-colors ${
+                            currentPage === pageNum
+                              ? "bg-[#235347] text-white"
+                              : "border border-gray-200 text-[#235347] hover:bg-[#235347]"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-[#235347] hover:bg-[#235347] disabled:opacity-50 transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Modals */}
@@ -343,8 +429,9 @@ export default function PatientsPage() {
           onClose={() => setCreateOpen(false)}
           onCreated={() => {
             fetchPatients()
-            showToast("Patient created successfully")
+            showToast("Patient created successfully", "success")
           }}
+          showToast={showToast}
         />
 
         <DeletePatientModal
@@ -356,8 +443,9 @@ export default function PatientsPage() {
           patientId={selectedPatient}
           onDeleted={() => {
             fetchPatients()
-            showToast("Patient deleted successfully")
+            showToast("Patient deleted successfully", "success")
           }}
+          showToast={showToast}
         />
 
         <UpdatePatientModal
@@ -369,20 +457,12 @@ export default function PatientsPage() {
           patient={selectedPatientData}
           onUpdated={() => {
             fetchPatients()
-            showToast("Patient updated successfully")
+            showToast("Patient updated successfully", "success")
           }}
+          showToast={showToast}
         />
 
-        <ViewPatientModal
-          isOpen={viewOpen}
-          onClose={() => {
-            setViewOpen(false)
-            setSelectedPatientForView(null)
-          }}
-          patient={selectedPatientForView}
-        />
-
-        {toast && <Toast message={toast} />}
+        {toast && <Toast message={toast.message} type={toast.type as any} onClose={() => setToast(null)} />}
       </div>
     </div>
   )

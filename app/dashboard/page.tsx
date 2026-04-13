@@ -1,386 +1,279 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useAuth } from "@/features/auth/context"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/features/auth/context"
 import { 
   Users, 
-  UserPlus, 
   Activity, 
   Calendar, 
+  Heart, 
+  TrendingUp, 
+  AlertCircle,
+  Loader2,
+  Hospital,
   Droplet,
-  Heart,
-  AlertCircle
+  Stethoscope
 } from "lucide-react"
 import api from "@/services/api"
 
 interface DashboardStats {
   totalPatients: number
-  activePatients: number
-  transplantPatients: number
-  dialysisPatients: number
-  recentPatients: Array<{
-    _id: string
-    firstName: string
-    lastName: string
-    medicalRecordNumber: number
-    createdAt: string
-  }>
-  patientsByBloodGroup: {
-    [key: string]: number
-  }
+  recipients: number
+  donors: number
+  totalTransplantations: number
+  totalFollowUps: number
+  stablePatients: number
+  criticalPatients: number
 }
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
+  
+  const [stats, setStats] = useState<DashboardStats>({
+    totalPatients: 0,
+    recipients: 0,
+    donors: 0,
+    totalTransplantations: 0,
+    totalFollowUps: 0,
+    stablePatients: 0,
+    criticalPatients: 0
+  })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Redirect if not authorized (only nephrologist and admin can access)
   useEffect(() => {
     if (authLoading) return
     
-    if (!user || (user.role !== "NEPHROLOGIST" && user.role !== "ADMIN")) {
-      router.push("/not-authorized")
+    if (!user) {
+      router.push("/login")
       return
     }
     
     fetchDashboardData()
-  }, [user, authLoading, router])
+  }, [authLoading, user, router])
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const response = await api.get("/patients")
-      const patients = response.data
-
-      const totalPatients = patients.length
-      const activePatients = patients.filter((p: any) => p.patientRole === "ACTIVE").length
-      const transplantPatients = patients.filter((p: any) => p.patientRole === "TRANSPLANT").length
-      const dialysisPatients = patients.filter((p: any) => p.patientRole === "DIALYSIS").length
-
-      const recentPatients = [...patients]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5)
-        .map((p: any) => ({
-          _id: p._id,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          medicalRecordNumber: p.medicalRecordNumber,
-          createdAt: p.createdAt
-        }))
-
-      const patientsByBloodGroup: { [key: string]: number } = {}
-      patients.forEach((p: any) => {
-        const bg = p.bloodGroup
-        patientsByBloodGroup[bg] = (patientsByBloodGroup[bg] || 0) + 1
-      })
-
+      setError(null)
+      
+      // Fetch patients
+      let patients: any[] = []
+      try {
+        const patientsRes = await api.get("/patients/all")
+        patients = patientsRes.data || []
+        console.log("Patients data:", patients)
+      } catch (err) {
+        console.error("Error fetching patients:", err)
+        patients = []
+      }
+      
+      // Fetch transplantations
+      let transplantations: any[] = []
+      try {
+        const txRes = await api.get("/transplantations", { params: { limit: 100 } })
+        transplantations = txRes.data?.data || txRes.data || []
+        console.log("Transplantations data:", transplantations)
+      } catch (err) {
+        console.error("Error fetching transplantations:", err)
+        transplantations = []
+      }
+      
+      // Fetch follow-ups
+      let followUps: any[] = []
+      try {
+        const followUpRes = await api.get("/followups", { params: { limit: 100 } })
+        followUps = followUpRes.data?.data || followUpRes.data || []
+        console.log("Follow-ups data:", followUps)
+      } catch (err) {
+        console.error("Error fetching follow-ups:", err)
+        followUps = []
+      }
+      
+      // Ensure patients is an array
+      const patientsArray = Array.isArray(patients) ? patients : []
+      
+      // Calculate stats
+      const recipients = patientsArray.filter((p: any) => p.patientRole === "recipient").length
+      const donors = patientsArray.filter((p: any) => p.patientRole === "donor").length
+      
+      // Get stable and critical patients from follow-ups
+      const stablePatients = followUps.filter((f: any) => f.clinicalStatus === "Stable").length
+      const criticalPatients = followUps.filter((f: any) => f.clinicalStatus === "Critical" || f.clinicalStatus === "Worsening").length
+      
       setStats({
-        totalPatients,
-        activePatients,
-        transplantPatients,
-        dialysisPatients,
-        recentPatients,
-        patientsByBloodGroup
+        totalPatients: patientsArray.length,
+        recipients,
+        donors,
+        totalTransplantations: Array.isArray(transplantations) ? transplantations.length : 0,
+        totalFollowUps: Array.isArray(followUps) ? followUps.length : 0,
+        stablePatients,
+        criticalPatients
       })
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
+      
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err)
+      setError("Failed to load dashboard data")
     } finally {
       setLoading(false)
     }
   }
 
-  const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return "Good morning"
-    if (hour < 18) return "Good afternoon"
-    return "Good evening"
-  }
-
-  const handleViewPatients = () => {
-    // Only nephrologists can view patients
-    if (user?.role === "NEPHROLOGIST") {
-      router.push("/patients")
-    } else {
-      router.push("/not-authorized")
-    }
-  }
-
-  const handleAddPatient = () => {
-    // Only nephrologists can add patients
-    if (user?.role === "NEPHROLOGIST") {
-      const event = new CustomEvent('openCreatePatientModal')
-      window.dispatchEvent(event)
-    } else {
-      router.push("/not-authorized")
-    }
-  }
-
-  const handleScheduleFollowUp = () => {
-    // Only nephrologists can schedule follow-ups
-    if (user?.role === "NEPHROLOGIST") {
-      router.push("/not-authorized") // Placeholder until implemented
-    } else {
-      router.push("/not-authorized")
-    }
-  }
-
-  const StatCard = ({ title, value, icon: Icon, color, bgColor }: any) => (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-        </div>
-        <div className={`${bgColor} rounded-full p-3`}>
-          <Icon className={`h-6 w-6 ${color}`} />
-        </div>
-      </div>
-    </div>
-  )
-
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto" />
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     )
   }
 
-  const isNephrologist = user?.role === "NEPHROLOGIST"
-  const isAdmin = user?.role === "ADMIN"
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">{error}</p>
+          <button 
+            onClick={() => fetchDashboardData()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const statCards = [
+    {
+      title: "Total Patients",
+      value: stats.totalPatients,
+      icon: Users,
+      color: "bg-blue-500",
+      bgColor: "bg-blue-100",
+      textColor: "text-blue-600"
+    },
+    {
+      title: "Recipients",
+      value: stats.recipients,
+      icon: Heart,
+      color: "bg-green-500",
+      bgColor: "bg-green-100",
+      textColor: "text-green-600"
+    },
+    {
+      title: "Donors",
+      value: stats.donors,
+      icon: Droplet,
+      color: "bg-purple-500",
+      bgColor: "bg-purple-100",
+      textColor: "text-purple-600"
+    },
+    {
+      title: "Transplantations",
+      value: stats.totalTransplantations,
+      icon: Hospital,
+      color: "bg-indigo-500",
+      bgColor: "bg-indigo-100",
+      textColor: "text-indigo-600"
+    },
+    {
+      title: "Follow-ups",
+      value: stats.totalFollowUps,
+      icon: Calendar,
+      color: "bg-yellow-500",
+      bgColor: "bg-yellow-100",
+      textColor: "text-yellow-600"
+    },
+    {
+      title: "Stable Patients",
+      value: stats.stablePatients,
+      icon: Activity,
+      color: "bg-green-500",
+      bgColor: "bg-green-100",
+      textColor: "text-green-600"
+    },
+    {
+      title: "Critical Cases",
+      value: stats.criticalPatients,
+      icon: AlertCircle,
+      color: "bg-red-500",
+      bgColor: "bg-red-100",
+      textColor: "text-red-600"
+    }
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Dashboard
-          </h1>
-          <p className="text-gray-600">
-            {getGreeting()}, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Welcome back.
-          </p>
-          {isAdmin && (
-            <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full">
-              Administrator
-            </span>
-          )}
-          {isNephrologist && (
-            <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-              Nephrologist
-            </span>
-          )}
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Welcome back, {user?.email}</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard 
-            title="Total Patients" 
-            value={stats?.totalPatients || 0}
-            icon={Users}
-            color="text-blue-600"
-            bgColor="bg-blue-100"
-          />
-          <StatCard 
-            title="Active Patients" 
-            value={stats?.activePatients || 0}
-            icon={Activity}
-            color="text-green-600"
-            bgColor="bg-green-100"
-          />
-          <StatCard 
-            title="Transplant Patients" 
-            value={stats?.transplantPatients || 0}
-            icon={Heart}
-            color="text-purple-600"
-            bgColor="bg-purple-100"
-          />
-          <StatCard 
-            title="Dialysis Patients" 
-            value={stats?.dialysisPatients || 0}
-            icon={Droplet}
-            color="text-orange-600"
-            bgColor="bg-orange-100"
-          />
-        </div>
-
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Recent Patients */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Patients</h2>
-                <p className="text-sm text-gray-500 mt-1">Recently added patients</p>
-              </div>
-              <div className="overflow-x-auto">
-                {stats?.recentPatients?.length === 0 ? (
-                  <div className="p-12 text-center text-gray-500">
-                    No patients added yet
-                  </div>
-                ) : (
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          MRN
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date Added
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {stats?.recentPatients.map((patient) => (
-                        <tr key={patient._id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-mono text-gray-900">
-                              {patient.medicalRecordNumber}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900">
-                              {patient.firstName} {patient.lastName}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-500">
-                              {new Date(patient.createdAt).toLocaleDateString()}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Blood Group Distribution */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Blood Group Distribution</h2>
-                <p className="text-sm text-gray-500 mt-1">Patient blood type breakdown</p>
-              </div>
-              <div className="p-6">
-                {stats?.patientsByBloodGroup && Object.keys(stats.patientsByBloodGroup).length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No data available</p>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(stats?.patientsByBloodGroup || {}).map(([bloodGroup, count]) => {
-                      const colors: { [key: string]: string } = {
-                        "A+": "bg-green-100 text-green-800",
-                        "A-": "bg-green-100 text-green-800",
-                        "B+": "bg-blue-100 text-blue-800",
-                        "B-": "bg-blue-100 text-blue-800",
-                        "AB+": "bg-yellow-100 text-yellow-800",
-                        "AB-": "bg-yellow-100 text-yellow-800",
-                        "O+": "bg-purple-100 text-purple-800",
-                        "O-": "bg-purple-100 text-purple-800",
-                      }
-                      const colorClass = colors[bloodGroup] || "bg-gray-100 text-gray-800"
-                      
-                      return (
-                        <div key={bloodGroup} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${colorClass}`}>
-                              {bloodGroup}
-                            </span>
-                            <span className="text-sm text-gray-600">Blood Type</span>
-                          </div>
-                          <span className="text-lg font-semibold text-gray-900">{count}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions - Only show for Nephrologists */}
-        {isNephrologist && (
-          <div className="mt-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
-                <p className="text-sm text-gray-500 mt-1">Common tasks</p>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button 
-                  onClick={handleViewPatients}
-                  className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
-                >
-                  <div className="bg-blue-600 rounded-full p-2">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">View All Patients</p>
-                    <p className="text-sm text-gray-500">Manage patient records</p>
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={handleAddPatient}
-                  className="flex items-center gap-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
-                >
-                  <div className="bg-green-600 rounded-full p-2">
-                    <UserPlus className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">Add New Patient</p>
-                    <p className="text-sm text-gray-500">Register a new patient</p>
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={handleScheduleFollowUp}
-                  className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group"
-                >
-                  <div className="bg-purple-600 rounded-full p-2">
-                    <Calendar className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">Schedule Follow-up</p>
-                    <p className="text-sm text-gray-500">Manage appointments</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Admin Info Message */}
-        {isAdmin && (
-          <div className="mt-8">
-            <div className="bg-purple-50 rounded-xl shadow-sm border border-purple-100 p-6">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-6 w-6 text-purple-600" />
+          {statCards.map((card, index) => (
+            <div 
+              key={index}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-purple-900">Administrator View</h3>
-                  <p className="text-sm text-purple-700 mt-1">
-                    As an administrator, you have read-only access to patient statistics. 
-                    Patient management is available for nephrologists only.
-                  </p>
+                  <p className="text-sm font-medium text-gray-500 mb-1">{card.title}</p>
+                  <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+                </div>
+                <div className={`${card.bgColor} rounded-full p-3`}>
+                  <card.icon className={`h-6 w-6 ${card.textColor}`} />
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              onClick={() => router.push("/patients")}
+              className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Users className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">Manage Patients</span>
+            </button>
+            <button
+              onClick={() => router.push("/transplantations")}
+              className="flex items-center gap-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+            >
+              <Hospital className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium text-gray-700">Manage Transplantations</span>
+            </button>
+            <button
+              onClick={() => router.push("/followups")}
+              className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Calendar className="h-5 w-5 text-purple-600" />
+              <span className="text-sm font-medium text-gray-700">Manage Follow-ups</span>
+            </button>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('openCreatePatientModal'))
+              }}
+              className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
+            >
+              <Users className="h-5 w-5 text-yellow-600" />
+              <span className="text-sm font-medium text-gray-700">Create New Patient</span>
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

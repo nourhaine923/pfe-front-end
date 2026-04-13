@@ -4,7 +4,24 @@ import { createContext, useState, useEffect, useContext } from "react"
 import Cookies from "js-cookie"
 import api from "@/services/api"
 
-const AuthContext = createContext<any>({})
+// Add proper types
+interface User {
+  email: string;
+  role: 'ADMIN' | 'NEPHROLOGIST';
+  isApproved: boolean;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
+
+interface AuthContextType {
+  user: User | null;
+  login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, role: string) => Promise<User>;
+  logout: () => void;
+  loading: boolean;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 
 // Helper function to safely decode token
 const decodeToken = (token: string) => {
@@ -12,7 +29,9 @@ const decodeToken = (token: string) => {
     const payload = JSON.parse(atob(token.split(".")[1]))
     return {
       email: payload.email,
-      role: payload.role
+      role: payload.role,
+      isApproved: payload.isApproved,
+      status: payload.status
     }
   } catch (err) {
     console.error("Failed to decode token:", err)
@@ -20,9 +39,8 @@ const decodeToken = (token: string) => {
   }
 }
 
-export function AuthProvider({ children }: any) {
-
-  const [user, setUser] = useState(null)
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load user from cookies on app start
@@ -34,13 +52,14 @@ export function AuthProvider({ children }: any) {
         console.log("Token found in cookies")
         api.defaults.headers.Authorization = `Bearer ${token}`
 
-        // Decode token to get user info
         try {
           const decoded = decodeToken(token)
           if (decoded) {
             setUser({
               email: decoded.email,
-              role: decoded.role
+              role: decoded.role,
+              isApproved: decoded.isApproved,
+              status: decoded.status
             })
           } else {
             console.error("Invalid token → removing cookie")
@@ -74,15 +93,51 @@ export function AuthProvider({ children }: any) {
         throw new Error("Failed to decode token")
       }
 
+      // Check if account is approved
+      if (decoded.status === 'PENDING') {
+        throw new Error("ACCOUNT_PENDING")
+      }
+      
+      if (decoded.status === 'REJECTED') {
+        throw new Error("ACCOUNT_REJECTED")
+      }
+
       const userData = {
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
+        isApproved: decoded.isApproved,
+        status: decoded.status
       }
 
       setUser(userData)
       return userData
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error)
+      
+      // Handle backend error responses
+      if (error.response?.status === 401) {
+        const detail = error.response?.data?.detail
+        if (detail === "Email not found") {
+          throw new Error("EMAIL_NOT_FOUND")
+        } else if (detail === "Invalid password") {
+          throw new Error("INVALID_PASSWORD")
+        } else if (detail === "ACCOUNT_PENDING") {
+          throw new Error("ACCOUNT_PENDING")
+        } else if (detail === "ACCOUNT_REJECTED") {
+          throw new Error("ACCOUNT_REJECTED")
+        } else {
+          throw new Error("Invalid email or password")
+        }
+      }
+      
+      // Handle specific error types from the decoded token check
+      if (error.message === "ACCOUNT_PENDING") {
+        throw new Error("ACCOUNT_PENDING")
+      }
+      if (error.message === "ACCOUNT_REJECTED") {
+        throw new Error("ACCOUNT_REJECTED")
+      }
+      
       throw error
     }
   }
@@ -100,42 +155,33 @@ export function AuthProvider({ children }: any) {
         role
       })
 
-      // Auto login after register
-      const token = data.access_token
-
-      if (token) {
-        Cookies.set("token", token, { expires: 1 })
-        api.defaults.headers.Authorization = `Bearer ${token}`
-
-        const decoded = decodeToken(token)
-        
-        if (!decoded) {
-          // If token decode fails but registration was successful, return basic user info
-          console.warn("Token decode failed but registration successful")
-          const userData = {
-            email: email,
-            role: role
-          }
-          setUser(userData)
-          return userData
-        }
-
-        const userData = {
-          email: decoded.email,
-          role: decoded.role
-        }
-        setUser(userData)
-        return userData
-      } else {
-        // If no token returned, registration was still successful
-        const userData = {
-          email: email,
-          role: role
-        }
-        return userData
+      // Don't auto-login for pending accounts
+      const userData = {
+        email: email,
+        role: role,
+        isApproved: false,
+        status: "PENDING"
       }
-    } catch (error) {
+      
+      return userData
+    } catch (error: any) {
       console.error("Register error:", error)
+      
+      // Handle specific error codes from backend
+      if (error.response?.status === 409) {
+        throw new Error("EMAIL_ALREADY_EXISTS")
+      }
+      
+      if (error.response?.status === 400) {
+        const detail = error.response?.data?.detail
+        if (detail?.includes("email")) {
+          throw new Error("INVALID_EMAIL_FORMAT")
+        }
+        if (detail?.includes("password")) {
+          throw new Error("WEAK_PASSWORD")
+        }
+      }
+      
       throw error
     }
   }
@@ -165,17 +211,3 @@ export function AuthProvider({ children }: any) {
 }
 
 export const useAuth = () => useContext(AuthContext)
-
-// Block access if user not logged in
-export const ProtectRoute = ({ children }: any) => {
-  const { isAuthenticated, loading } = useAuth()
-
-  if (loading) return <p>Loading...</p>
-
-  if (!isAuthenticated && typeof window !== 'undefined' && window.location.pathname !== "/login") {
-    window.location.href = "/login"
-    return null
-  }
-
-  return children
-}

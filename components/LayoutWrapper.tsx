@@ -40,7 +40,6 @@ export default function LayoutWrapper({ children }: any) {
 
       <div style={{ 
         marginLeft: !isAuthPage ? "250px" : 0,
-        padding: "20px",
         minHeight: "100vh",
         backgroundColor: "#f5f5f5"
       }}>

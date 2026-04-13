@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Modal from "./Modal"
 import api from "@/services/api"
+import { Loader2 } from "lucide-react"
 
-/* -------------------- SHARED COMPONENTS -------------------- */
+/*SHARED COMPONENTS */
 
 const InputField = ({
   label,
@@ -12,32 +13,22 @@ const InputField = ({
   placeholder,
   required = false,
   numeric = false,
-  form,
-  setForm,
-  errors,
-  setErrors,
+  value,
+  onChange,
+  onBlur,
+  error,
   ...props
 }: any) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { value } = e.target
 
     if (numeric) {
       if (value === "" || /^\d*\.?\d*$/.test(value)) {
-        setForm((prev: any) => ({
-          ...prev,
-          [name]: value
-        }))
+        onChange?.(value)
       }
     } else {
-      setForm((prev: any) => ({
-        ...prev,
-        [name]: value
-      }))
-    }
-
-    if (errors[name]) {
-      setErrors((prev: any) => ({ ...prev, [name]: undefined }))
+      onChange?.(value)
     }
   }
 
@@ -46,22 +37,19 @@ const InputField = ({
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-
       <input
-        type="text"
+        type={props.type || "text"}
         name={name}
         placeholder={placeholder}
-        value={form[name] || ""}
+        value={value || ""}
         onChange={handleInputChange}
+        onBlur={onBlur}
         inputMode={numeric ? "numeric" : "text"}
-        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all
-        ${errors[name] ? "border-red-500" : "border-gray-300"}`}
+        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all
+        ${error ? "border-red-500" : "border-gray-300"}`}
         {...props}
       />
-
-      {errors[name] && (
-        <p className="text-sm text-red-500 mt-1">{errors[name]}</p>
-      )}
+      {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
     </div>
   )
 }
@@ -70,18 +58,14 @@ const SelectField = ({
   label, 
   name, 
   options, 
-  form, 
-  setForm, 
-  errors,
+  value,
+  onChange,
+  error,
   required = false 
 }: any) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setForm((prev: any) => ({ ...prev, [name]: value }))
-    if (errors[name]) {
-      setErrors((prev: any) => ({ ...prev, [name]: undefined }))
-    }
+    onChange?.(e.target.value)
   }
 
   return (
@@ -89,31 +73,26 @@ const SelectField = ({
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-
       <select
         name={name}
-        value={form[name] || ""}
+        value={value || ""}
         onChange={handleChange}
-        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white
-        ${errors[name] ? "border-red-500" : "border-gray-300"}`}
+        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white
+        ${error ? "border-red-500" : "border-gray-300"}`}
       >
         <option value="">Select {label}</option>
         {options.map((opt: string) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>
-
-      {errors[name] && (
-        <p className="text-sm text-red-500 mt-1">{errors[name]}</p>
-      )}
+      {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
     </div>
   )
 }
 
-const CheckboxField = ({ label, name, form, setForm }: any) => {
+const CheckboxField = ({ label, name, checked, onChange }: any) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target
-    setForm((prev: any) => ({ ...prev, [name]: checked }))
+    onChange?.(e.target.checked)
   }
 
   return (
@@ -123,11 +102,11 @@ const CheckboxField = ({ label, name, form, setForm }: any) => {
         <input
           type="checkbox"
           name={name}
-          checked={form[name] || false}
+          checked={checked || false}
           onChange={handleChange}
           className="sr-only peer"
         />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
       </label>
     </div>
   )
@@ -139,7 +118,7 @@ const SectionTitle = ({ title }: { title: string }) => (
   </div>
 )
 
-/* -------------------- MAIN COMPONENT -------------------- */
+/* MAIN COMPONENT */
 
 interface Props {
   isOpen: boolean
@@ -149,6 +128,9 @@ interface Props {
 }
 
 export default function CreatePatientModal({ isOpen, onClose, onCreated, showToast }: Props) {
+
+  const [step, setStep] = useState(1)
+  const totalSteps = 3
 
   const initialState = {
     lastName: "",
@@ -183,121 +165,285 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
   const [form, setForm] = useState(initialState)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<any>({})
+  const [mrnValid, setMrnValid] = useState<boolean | null>(null)
 
-  // Helper function to check if string contains numbers
-  const containsNumbers = (str: string): boolean => {
-    return /\d/.test(str)
+  // Check if MRN exists via API
+  const checkMRNExists = useCallback(async (mrn: string) => {
+    if (!mrn || mrn === "") {
+      setMrnValid(null)
+      return
+    }
+
+    if (!/^\d+$/.test(mrn)) {
+      setMrnValid(false)
+      return
+    }
+
+    try {
+      const mrnNumber = Number(mrn)
+      const res = await api.get(`/patients/check-mrn/${mrnNumber}`)
+      const exists = res.data.exists
+      setMrnValid(!exists)
+    } catch (err) {
+      console.error("Error checking MRN:", err)
+    }
+  }, [])
+
+  const handleMRNChange = (value: string) => {
+    setForm(prev => ({ ...prev, medicalRecordNumber: value }))
+    
+    if (value === "") {
+      setMrnValid(null)
+    } else if (!/^\d+$/.test(value)) {
+      setMrnValid(false)
+    } else {
+      setTimeout(() => {
+        checkMRNExists(value)
+      }, 500)
+    }
   }
 
-  // Validate form before submission
-  const validateForm = (): boolean => {
+  const containsNumbers = (str: string): boolean => /\d/.test(str)
+
+  // Validate current step and return errors
+  const validateCurrentStep = (): { isValid: boolean; errorMessages: string[] } => {
     const newErrors: any = {}
+    const errorMessages: string[] = []
     
-    // Required fields
-    if (!form.firstName.trim()) newErrors.firstName = "First name is required"
-    if (!form.lastName.trim()) newErrors.lastName = "Last name is required"
-    if (!form.medicalRecordNumber.trim()) {
-      newErrors.medicalRecordNumber = "Medical Record Number is required"
-    } else if (!/^\d+$/.test(form.medicalRecordNumber)) {
-      newErrors.medicalRecordNumber = "MRN must contain only numbers"
+    if (step === 1) {
+      if (!form.firstName.trim()) {
+        newErrors.firstName = "First name is required"
+        errorMessages.push("First name is required")
+      }
+      if (!form.lastName.trim()) {
+        newErrors.lastName = "Last name is required"
+        errorMessages.push("Last name is required")
+      }
+      if (!form.medicalRecordNumber.trim()) {
+        newErrors.medicalRecordNumber = "Medical Record Number is required"
+        errorMessages.push("Medical Record Number is required")
+      } else if (!/^\d+$/.test(form.medicalRecordNumber)) {
+        newErrors.medicalRecordNumber = "MRN must contain only numbers"
+        errorMessages.push("MRN must contain only numbers")
+      } else if (mrnValid === false) {
+        newErrors.medicalRecordNumber = "This Medical Record Number already exists"
+        errorMessages.push("This Medical Record Number already exists")
+      }
+      if (!form.sex) {
+        newErrors.sex = "Sex is required"
+        errorMessages.push("Sex is required")
+      }
+      if (!form.bloodGroup) {
+        newErrors.bloodGroup = "Blood group is required"
+        errorMessages.push("Blood group is required")
+      }
+      
+      if (form.firstName && containsNumbers(form.firstName)) {
+        newErrors.firstName = "First name should not contain numbers"
+        errorMessages.push("First name should not contain numbers")
+      }
+      if (form.lastName && containsNumbers(form.lastName)) {
+        newErrors.lastName = "Last name should not contain numbers"
+        errorMessages.push("Last name should not contain numbers")
+      }
     }
-    if (!form.sex) newErrors.sex = "Sex is required"
-    if (!form.bloodGroup) newErrors.bloodGroup = "Blood group is required"
     
-    // Validate string fields for numbers (no numbers allowed)
-    const stringFields = [
-      { field: 'firstName', label: 'First name' },
-      { field: 'lastName', label: 'Last name' },
-      { field: 'donorType', label: 'Donor type' },
-      { field: 'blood_group', label: 'Blood group (clinical)' },
-      { field: 'primary_nephropathy', label: 'Primary nephropathy' },
-      { field: 'dialysis_type', label: 'Dialysis type' },
-      { field: 'comorbidities', label: 'Comorbidities' }
-    ]
-    
-    stringFields.forEach(({ field, label }) => {
-      const value = form[field]
-      if (value && containsNumbers(value)) {
-        newErrors[field] = `${label} should not contain numbers`
+    if (step === 2) {
+      if (form.patientRole === "donor") {
+        if (!form.donorType.trim()) {
+          newErrors.donorType = "Donor type is required"
+          errorMessages.push("Donor type is required")
+        }
+        if (!form.ageAtDonation) {
+          newErrors.ageAtDonation = "Age at donation is required"
+          errorMessages.push("Age at donation is required")
+        } else {
+          const ageNum = Number(form.ageAtDonation)
+          if (isNaN(ageNum) || ageNum < 18 || ageNum > 70) {
+            newErrors.ageAtDonation = "Age must be between 18 and 70"
+            errorMessages.push("Age must be between 18 and 70")
+          }
+        }
+        // Morphology for donors - height and weight 
+        if (!form.heightCm || form.heightCm === "") {
+          newErrors.heightCm = "Height is required for donors"
+          errorMessages.push("Height is required for donors")
+        } else {
+          const heightNum = Number(form.heightCm)
+          if (isNaN(heightNum) || heightNum < 50 || heightNum > 300) {
+            newErrors.heightCm = "Height must be between 50cm and 300cm"
+            errorMessages.push("Height must be between 50cm and 300cm")
+          }
+        }
+        if (!form.weightKg || form.weightKg === "") {
+          newErrors.weightKg = "Weight is required for donors"
+          errorMessages.push("Weight is required for donors")
+        } else {
+          const weightNum = Number(form.weightKg)
+          if (isNaN(weightNum) || weightNum < 10 || weightNum > 500) {
+            newErrors.weightKg = "Weight must be between 10kg and 500kg"
+            errorMessages.push("Weight must be between 10kg and 500kg")
+          }
+        }
       }
-    })
-    
-    // Role-specific validation
-    if (form.patientRole === "donor") {
-      if (!form.donorType.trim()) newErrors.donorType = "Donor type is required"
-      if (!form.ageAtDonation) newErrors.ageAtDonation = "Age at donation is required"
-      const ageNum = Number(form.ageAtDonation)
-      if (form.ageAtDonation && (isNaN(ageNum) || ageNum < 18 || ageNum > 70)) {
-        newErrors.ageAtDonation = "Age must be between 18 and 70"
+      
+      if (form.patientRole === "recipient") {
+        if (!form.birthDate) {
+          newErrors.birthDate = "Birth date is required"
+          errorMessages.push("Birth date is required")
+        }
+        // Morphology for recipients - height and weight
+        if (!form.heightCm || form.heightCm === "") {
+          newErrors.heightCm = "Height is required"
+          errorMessages.push("Height is required")
+        } else {
+          const heightNum = Number(form.heightCm)
+          if (isNaN(heightNum) || heightNum < 50 || heightNum > 300) {
+            newErrors.heightCm = "Height must be between 50cm and 300cm"
+            errorMessages.push("Height must be between 50cm and 300cm")
+          }
+        }
+        if (!form.weightKg || form.weightKg === "") {
+          newErrors.weightKg = "Weight is required"
+          errorMessages.push("Weight is required")
+        } else {
+          const weightNum = Number(form.weightKg)
+          if (isNaN(weightNum) || weightNum < 10 || weightNum > 500) {
+            newErrors.weightKg = "Weight must be between 10kg and 500kg"
+            errorMessages.push("Weight must be between 10kg and 500kg")
+          }
+        }
       }
     }
     
-    if (form.patientRole === "recipient") {
-      if (!form.birthDate) newErrors.birthDate = "Birth date is required"
-      const heightNum = Number(form.heightCm)
-      if (form.heightCm && (isNaN(heightNum) || heightNum < 50 || heightNum > 300)) {
-        newErrors.heightCm = "Height must be between 50cm and 300cm"
+    if (step === 3 && form.patientRole === "recipient") {
+      // Clinical data validation 
+      if (form.age_at_transplant && isNaN(Number(form.age_at_transplant))) {
+        newErrors.age_at_transplant = "Age at transplant must be a number"
+        errorMessages.push("Age at transplant must be a number")
       }
-      const weightNum = Number(form.weightKg)
-      if (form.weightKg && (isNaN(weightNum) || weightNum < 10 || weightNum > 500)) {
-        newErrors.weightKg = "Weight must be between 10kg and 500kg"
+      if (form.dialysis_duration && isNaN(Number(form.dialysis_duration))) {
+        newErrors.dialysis_duration = "Dialysis duration must be a number"
+        errorMessages.push("Dialysis duration must be a number")
+      }
+      if (form.transplant_rank && isNaN(Number(form.transplant_rank))) {
+        newErrors.transplant_rank = "Transplant rank must be a number"
+        errorMessages.push("Transplant rank must be a number")
       }
     }
     
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, errorMessages }
+  }
+
+  const nextStep = () => {
+    const { isValid, errorMessages } = validateCurrentStep()
+    if (isValid) {
+      setStep(step + 1)
+    } else if (errorMessages.length > 0) {
+      showToast?.(errorMessages[0], "error")
+    }
+  }
+
+  const prevStep = () => {
+    setStep(step - 1)
   }
 
   const handleCreate = async () => {
-    if (!validateForm()) return
+    const { isValid, errorMessages } = validateCurrentStep()
+    if (!isValid) {
+      if (errorMessages.length > 0) {
+        showToast?.(errorMessages[0], "error")
+      }
+      return
+    }
 
     try {
       setLoading(true)
 
-      const payload = {
+      const payload: any = {
         lastName: form.lastName,
         firstName: form.firstName,
         medicalRecordNumber: Number(form.medicalRecordNumber),
         sex: form.sex,
         bloodGroup: form.bloodGroup,
         foreignPatient: form.foreignPatient,
-        heightCm: form.heightCm ? Number(form.heightCm) : null,
-        weightKg: form.weightKg ? Number(form.weightKg) : null,
         patientRole: form.patientRole,
-        donorType: form.patientRole === "donor" ? form.donorType : null,
-        ageAtDonation: form.patientRole === "donor" ? (form.ageAtDonation ? Number(form.ageAtDonation) : null) : null,
-        birthDate: form.patientRole === "recipient" ? form.birthDate : null,
-        clinicalData: form.patientRole === "recipient" ? {
-          age_at_transplant: form.age_at_transplant ? Number(form.age_at_transplant) : null,
-          blood_group: form.blood_group,
-          primary_nephropathy: form.primary_nephropathy,
-          dialysis_type: form.dialysis_type,
-          dialysis_duration: form.dialysis_duration ? Number(form.dialysis_duration) : null,
-          comorbidities: form.comorbidities,
-          transplant_rank: form.transplant_rank ? Number(form.transplant_rank) : null
-        } : {},
-        hlaTyping: {
-          hlaA1: form.hlaA1,
-          hlaA2: form.hlaA2,
-          hlaB1: form.hlaB1,
-          hlaB2: form.hlaB2,
-          hlaDR1: form.hlaDR1,
-          hlaDR2: form.hlaDR2,
-          hlaDQ1: form.hlaDQ1,
-          hlaDQ2: form.hlaDQ2
-        },
-        administrativeData: []
       }
+
+      // Morphology for both donor and recipient
+      if (form.heightCm && form.heightCm !== "") {
+        payload.heightCm = Number(form.heightCm)
+      }
+      if (form.weightKg && form.weightKg !== "") {
+        payload.weightKg = Number(form.weightKg)
+      }
+
+      if (form.patientRole === "donor") {
+        if (form.donorType && form.donorType !== "") payload.donorType = form.donorType
+        if (form.ageAtDonation && form.ageAtDonation !== "") payload.ageAtDonation = Number(form.ageAtDonation)
+      }
+
+      if (form.patientRole === "recipient") {
+        if (form.birthDate && form.birthDate !== "") payload.birthDate = form.birthDate
+      }
+
+      // Clinical Data for recipients
+      if (form.patientRole === "recipient") {
+        const clinicalData: any = {}
+        if (form.age_at_transplant && form.age_at_transplant !== "") clinicalData.age_at_transplant = Number(form.age_at_transplant)
+        if (form.blood_group && form.blood_group !== "") clinicalData.blood_group = form.blood_group
+        if (form.primary_nephropathy && form.primary_nephropathy !== "") clinicalData.primary_nephropathy = form.primary_nephropathy
+        if (form.dialysis_type && form.dialysis_type !== "") clinicalData.dialysis_type = form.dialysis_type
+        if (form.dialysis_duration && form.dialysis_duration !== "") clinicalData.dialysis_duration = Number(form.dialysis_duration)
+        if (form.comorbidities && form.comorbidities !== "") clinicalData.comorbidities = form.comorbidities
+        if (form.transplant_rank && form.transplant_rank !== "") clinicalData.transplant_rank = Number(form.transplant_rank)
+        
+        if (Object.keys(clinicalData).length > 0) payload.clinicalData = clinicalData
+      }
+
+      // HLA Typing
+      const hlaTyping: any = {}
+      if (form.hlaA1 && form.hlaA1 !== "") hlaTyping.hlaA1 = form.hlaA1.toUpperCase()
+      if (form.hlaA2 && form.hlaA2 !== "") hlaTyping.hlaA2 = form.hlaA2.toUpperCase()
+      if (form.hlaB1 && form.hlaB1 !== "") hlaTyping.hlaB1 = form.hlaB1.toUpperCase()
+      if (form.hlaB2 && form.hlaB2 !== "") hlaTyping.hlaB2 = form.hlaB2.toUpperCase()
+      if (form.hlaDR1 && form.hlaDR1 !== "") hlaTyping.hlaDR1 = form.hlaDR1.toUpperCase()
+      if (form.hlaDR2 && form.hlaDR2 !== "") hlaTyping.hlaDR2 = form.hlaDR2.toUpperCase()
+      if (form.hlaDQ1 && form.hlaDQ1 !== "") hlaTyping.hlaDQ1 = form.hlaDQ1.toUpperCase()
+      if (form.hlaDQ2 && form.hlaDQ2 !== "") hlaTyping.hlaDQ2 = form.hlaDQ2.toUpperCase()
+      
+      if (Object.keys(hlaTyping).length > 0) payload.hlaTyping = hlaTyping
+
+      // Administrative data (empty object as per schema)
+      payload.administrativeData = {}
+
+      console.log("Sending payload:", payload)
 
       await api.post("/patients", payload)
       
       showToast?.("Patient created successfully!", "success")
       onCreated()
       setForm(initialState)
+      setMrnValid(null)
+      setStep(1)
       onClose()
-    } catch (err) {
+    } catch (err: any) {
       console.error("Create patient error:", err)
-      showToast?.("Failed to create patient. Please try again.", "error")
+      
+      if (err.response?.status === 422) {
+        const errorDetails = err.response?.data?.detail
+        if (Array.isArray(errorDetails)) {
+          const firstError = errorDetails[0]
+          showToast?.(`${firstError.loc[1]}: ${firstError.msg}`, "error")
+        } else {
+          showToast?.("Validation error. Please check all fields.", "error")
+        }
+      } else if (err.response?.data?.detail?.includes("duplicate")) {
+        showToast?.("Medical Record Number already exists. Please use a unique MRN.", "error")
+      } else {
+        showToast?.("Failed to create patient. Please try again.", "error")
+      }
     } finally {
       setLoading(false)
     }
@@ -306,275 +452,300 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
   const handleClose = () => {
     setForm(initialState)
     setErrors({})
+    setMrnValid(null)
+    setStep(1)
     onClose()
   }
 
+  const donorTypeOptions = ["Living Related", "Living Unrelated", "Cadaveric", "Deceased Donor"]
+  const bloodGroupOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+  const dialysisTypeOptions = ["Hemodialysis", "Peritoneal Dialysis", "None"]
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      {/* Scroll container WITHOUT vertical padding */}
       <div className="max-h-[80vh] overflow-y-auto">
-        {/* Inner wrapper WITH padding */}
         <div className="px-4 py-4">
-          {/* Sticky header */}
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
-            <h2 className="text-2xl font-bold text-purple-900">Create New Patient</h2>
+            <h2 className="text-2xl font-bold text-teal-900">Create New Patient</h2>
             <p className="text-sm text-gray-500 mt-1">Fill in the patient information below</p>
+            
+            <div className="mt-4 flex items-center justify-between gap-2">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className={`flex-1 h-2 rounded-full transition-all ${
+                  s === step ? "bg-teal-600" : s < step ? "bg-teal-500" : "bg-gray-200"
+                }`} />
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 text-center mt-2">
+              Step {step} of {totalSteps}: {step === 1 && "Basic Information"}
+              {step === 2 && (form.patientRole === "donor" ? "Donor Information & Morphology" : "Recipient Information & Morphology")}
+              {step === 3 && (form.patientRole === "recipient" ? "Clinical Data & HLA Typing" : "HLA Typing")}
+            </p>
           </div>
 
           <div className="space-y-6">
-            {/* Identity Section */}
-            <SectionTitle title="Identity" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField
-                label="Medical Record Number"
-                name="medicalRecordNumber"
-                placeholder="Enter MRN"
-                required
-                numeric
-                form={form}
-                setForm={setForm}
-                errors={errors}
-                setErrors={setErrors}
-              />
-              <InputField
-                label="First Name"
-                name="firstName"
-                placeholder="Enter first name"
-                required
-                form={form}
-                setForm={setForm}
-                errors={errors}
-                setErrors={setErrors}
-              />
-              <InputField
-                label="Last Name"
-                name="lastName"
-                placeholder="Enter last name"
-                required
-                form={form}
-                setForm={setForm}
-                errors={errors}
-                setErrors={setErrors}
-              />
-              <SelectField
-                label="Sex"
-                name="sex"
-                options={["Male", "Female"]}
-                required
-                form={form}
-                setForm={setForm}
-                errors={errors}
-              />
-              <SelectField
-                label="Blood Group"
-                name="bloodGroup"
-                options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]}
-                required
-                form={form}
-                setForm={setForm}
-                errors={errors}
-              />
-            </div>
+            {/* Step 1: Basic Information */}
+            {step === 1 && (
+              <>
+                <SectionTitle title="Basic Information" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <InputField
+                      label="Medical Record Number"
+                      name="medicalRecordNumber"
+                      placeholder="Enter unique MRN"
+                      required
+                      numeric
+                      value={form.medicalRecordNumber}
+                      onChange={handleMRNChange}
+                      error={errors.medicalRecordNumber}
+                    />
+                    {mrnValid === true && form.medicalRecordNumber && (
+                      <p className="text-xs text-teal-500 mt-1">✓ Available</p>
+                    )}
+                    {mrnValid === false && form.medicalRecordNumber && (
+                      <p className="text-xs text-red-500 mt-1">✗ This MRN already exists</p>
+                    )}
+                  </div>
+                  <InputField
+                    label="First Name"
+                    name="firstName"
+                    placeholder="Enter first name"
+                    required
+                    value={form.firstName}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, firstName: val }))}
+                    error={errors.firstName}
+                  />
+                  <InputField
+                    label="Last Name"
+                    name="lastName"
+                    placeholder="Enter last name"
+                    required
+                    value={form.lastName}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, lastName: val }))}
+                    error={errors.lastName}
+                  />
+                  <SelectField
+                    label="Sex"
+                    name="sex"
+                    options={["Male", "Female"]}
+                    required
+                    value={form.sex}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, sex: val }))}
+                    error={errors.sex}
+                  />
+                  <SelectField
+                    label="Blood Group"
+                    name="bloodGroup"
+                    options={bloodGroupOptions}
+                    required
+                    value={form.bloodGroup}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, bloodGroup: val }))}
+                    error={errors.bloodGroup}
+                  />
+                </div>
+                <CheckboxField
+                  label="Foreign Patient"
+                  name="foreignPatient"
+                  checked={form.foreignPatient}
+                  onChange={(val: boolean) => setForm(prev => ({ ...prev, foreignPatient: val }))}
+                />
+                <SelectField
+                  label="Patient Role"
+                  name="patientRole"
+                  options={["recipient", "donor"]}
+                  required
+                  value={form.patientRole}
+                  onChange={(val: string) => setForm(prev => ({ ...prev, patientRole: val }))}
+                  error={errors.patientRole}
+                />
+              </>
+            )}
 
-            <CheckboxField
-              label="Foreign Patient"
-              name="foreignPatient"
-              form={form}
-              setForm={setForm}
-            />
-
-            {/* Morphology Section */}
-            <SectionTitle title="Morphology" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField
-                label="Height (cm)"
-                name="heightCm"
-                placeholder="Enter height"
-                numeric
-                form={form}
-                setForm={setForm}
-                errors={errors}
-                setErrors={setErrors}
-              />
-              <InputField
-                label="Weight (kg)"
-                name="weightKg"
-                placeholder="Enter weight"
-                numeric
-                form={form}
-                setForm={setForm}
-                errors={errors}
-                setErrors={setErrors}
-              />
-            </div>
-
-            {/* Role Selection */}
-            <SectionTitle title="Patient Role" />
-            <SelectField
-              label="Role"
-              name="patientRole"
-              options={["recipient", "donor"]}
-              required
-              form={form}
-              setForm={setForm}
-              errors={errors}
-            />
-
-            {/* Donor Specific Fields */}
-            {form.patientRole === "donor" && (
-              <div className="bg-blue-50 p-4 rounded-lg">
+            {/* Step 2: Role-Specific Information & Morphology */}
+            {step === 2 && form.patientRole === "donor" && (
+              <>
                 <SectionTitle title="Donor Information" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField
+                  <SelectField
                     label="Donor Type"
                     name="donorType"
-                    placeholder="Living / Cadaveric"
+                    options={donorTypeOptions}
                     required
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
+                    value={form.donorType}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, donorType: val }))}
+                    error={errors.donorType}
                   />
                   <InputField
                     label="Age at Donation"
                     name="ageAtDonation"
-                    placeholder="Age at donation"
+                    placeholder="Age at donation (18-70 years)"
                     required
                     numeric
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
+                    value={form.ageAtDonation}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, ageAtDonation: val }))}
+                    error={errors.ageAtDonation}
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Recipient Specific Fields */}
-            {form.patientRole === "recipient" && (
-              <>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <SectionTitle title="Recipient Information" />
-                  <InputField
-                    label="Birth Date"
-                    name="birthDate"
-                    type="date"
-                    required
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
-                </div>
-
-                <SectionTitle title="Clinical Data" />
+                <SectionTitle title="Morphology" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <InputField
-                    label="Age at Transplant"
-                    name="age_at_transplant"
-                    placeholder="Age at transplant"
+                    label="Height (cm)"
+                    name="heightCm"
+                    placeholder="Enter height (50-300cm)"
+                    required
                     numeric
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
+                    value={form.heightCm}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, heightCm: val }))}
+                    error={errors.heightCm}
                   />
                   <InputField
-                    label="Blood Group (Clinical)"
-                    name="blood_group"
-                    placeholder="Blood group"
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
-                  <InputField
-                    label="Primary Nephropathy"
-                    name="primary_nephropathy"
-                    placeholder="Primary nephropathy"
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
-                  <InputField
-                    label="Dialysis Type"
-                    name="dialysis_type"
-                    placeholder="Type of dialysis"
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
-                  <InputField
-                    label="Dialysis Duration (months)"
-                    name="dialysis_duration"
-                    placeholder="Duration"
+                    label="Weight (kg)"
+                    name="weightKg"
+                    placeholder="Enter weight (10-500kg)"
+                    required
                     numeric
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
-                  <InputField
-                    label="Comorbidities"
-                    name="comorbidities"
-                    placeholder="Comorbidities"
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
-                  <InputField
-                    label="Transplant Rank"
-                    name="transplant_rank"
-                    placeholder="Number of transplants"
-                    numeric
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
+                    value={form.weightKg}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, weightKg: val }))}
+                    error={errors.weightKg}
                   />
                 </div>
               </>
             )}
 
-            {/* HLA Typing Section */}
-            <SectionTitle title="HLA Typing" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <InputField label="HLA A1" name="hlaA1" placeholder="HLA A1" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA A2" name="hlaA2" placeholder="HLA A2" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA B1" name="hlaB1" placeholder="HLA B1" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA B2" name="hlaB2" placeholder="HLA B2" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA DR1" name="hlaDR1" placeholder="HLA DR1" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA DR2" name="hlaDR2" placeholder="HLA DR2" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA DQ1" name="hlaDQ1" placeholder="HLA DQ1" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-              <InputField label="HLA DQ2" name="hlaDQ2" placeholder="HLA DQ2" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
-            </div>
+            {step === 2 && form.patientRole === "recipient" && (
+              <>
+                <SectionTitle title="Recipient Information" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputField
+                    label="Birth Date"
+                    name="birthDate"
+                    type="date"
+                    required
+                    value={form.birthDate}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, birthDate: val }))}
+                    error={errors.birthDate}
+                  />
+                </div>
+                <SectionTitle title="Morphology" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InputField
+                    label="Height (cm)"
+                    name="heightCm"
+                    placeholder="Enter height (50-300cm)"
+                    required
+                    numeric
+                    value={form.heightCm}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, heightCm: val }))}
+                    error={errors.heightCm}
+                  />
+                  <InputField
+                    label="Weight (kg)"
+                    name="weightKg"
+                    placeholder="Enter weight (10-500kg)"
+                    required
+                    numeric
+                    value={form.weightKg}
+                    onChange={(val: string) => setForm(prev => ({ ...prev, weightKg: val }))}
+                    error={errors.weightKg}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Clinical Data & HLA Typing */}
+            {step === 3 && (
+              <>
+                {form.patientRole === "recipient" && (
+                  <>
+                    <SectionTitle title="Clinical Data" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InputField
+                        label="Age at Transplant"
+                        name="age_at_transplant"
+                        placeholder="Age at transplant (years)"
+                        numeric
+                        value={form.age_at_transplant}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, age_at_transplant: val }))}
+                        error={errors.age_at_transplant}
+                      />
+                      <SelectField
+                        label="Blood Group (Clinical)"
+                        name="blood_group"
+                        options={bloodGroupOptions}
+                        value={form.blood_group}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, blood_group: val }))}
+                      />
+                      <InputField
+                        label="Primary Nephropathy"
+                        name="primary_nephropathy"
+                        placeholder="Primary nephropathy"
+                        value={form.primary_nephropathy}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, primary_nephropathy: val }))}
+                      />
+                      <SelectField
+                        label="Dialysis Type"
+                        name="dialysis_type"
+                        options={dialysisTypeOptions}
+                        value={form.dialysis_type}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, dialysis_type: val }))}
+                      />
+                      <InputField
+                        label="Dialysis Duration (months)"
+                        name="dialysis_duration"
+                        placeholder="Duration in months"
+                        numeric
+                        value={form.dialysis_duration}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, dialysis_duration: val }))}
+                        error={errors.dialysis_duration}
+                      />
+                      <InputField
+                        label="Comorbidities"
+                        name="comorbidities"
+                        placeholder="Comorbidities (comma separated)"
+                        value={form.comorbidities}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, comorbidities: val }))}
+                      />
+                      <InputField
+                        label="Transplant Rank"
+                        name="transplant_rank"
+                        placeholder="Number of transplants (1, 2, 3...)"
+                        numeric
+                        value={form.transplant_rank}
+                        onChange={(val: string) => setForm(prev => ({ ...prev, transplant_rank: val }))}
+                        error={errors.transplant_rank}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <SectionTitle title="HLA Typing" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <InputField label="HLA A1" name="hlaA1" placeholder="A*01:01" value={form.hlaA1} onChange={(val: string) => setForm(prev => ({ ...prev, hlaA1: val.toUpperCase() }))} />
+                  <InputField label="HLA A2" name="hlaA2" placeholder="A*02:01" value={form.hlaA2} onChange={(val: string) => setForm(prev => ({ ...prev, hlaA2: val.toUpperCase() }))} />
+                  <InputField label="HLA B1" name="hlaB1" placeholder="B*07:02" value={form.hlaB1} onChange={(val: string) => setForm(prev => ({ ...prev, hlaB1: val.toUpperCase() }))} />
+                  <InputField label="HLA B2" name="hlaB2" placeholder="B*08:01" value={form.hlaB2} onChange={(val: string) => setForm(prev => ({ ...prev, hlaB2: val.toUpperCase() }))} />
+                  <InputField label="HLA DR1" name="hlaDR1" placeholder="DRB1*11:04" value={form.hlaDR1} onChange={(val: string) => setForm(prev => ({ ...prev, hlaDR1: val.toUpperCase() }))} />
+                  <InputField label="HLA DR2" name="hlaDR2" placeholder="DRB1*15:01" value={form.hlaDR2} onChange={(val: string) => setForm(prev => ({ ...prev, hlaDR2: val.toUpperCase() }))} />
+                  <InputField label="HLA DQ1" name="hlaDQ1" placeholder="DQB1*03:01" value={form.hlaDQ1} onChange={(val: string) => setForm(prev => ({ ...prev, hlaDQ1: val.toUpperCase() }))} />
+                  <InputField label="HLA DQ2" name="hlaDQ2" placeholder="DQB1*02:01" value={form.hlaDQ2} onChange={(val: string) => setForm(prev => ({ ...prev, hlaDQ2: val.toUpperCase() }))} />
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Sticky footer */}
-          <div className="sticky bottom-0 bg-white pt-4 mt-6 border-t flex justify-end gap-3 z-10">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={loading}
-              className="px-6 py-2 bg-purple-900 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Creating...
-                </>
+          <div className="sticky bottom-0 bg-white pt-4 mt-6 border-t flex justify-between gap-3 z-10">
+            <div>{step > 1 && <button onClick={prevStep} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">← Previous</button>}</div>
+            <div className="flex gap-3">
+              <button onClick={handleClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+              {step < totalSteps ? (
+                <button onClick={nextStep} className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Next →</button>
               ) : (
-                "Create Patient"
+                <button onClick={handleCreate} disabled={loading} className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:bg-gray-400 flex items-center gap-2">
+                  {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</> : "Create Patient"}
+                </button>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>
