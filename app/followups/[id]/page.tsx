@@ -25,7 +25,10 @@ import {
   Hospital,
   Pencil,
   ListTodo,
-  ChevronRight
+  ChevronRight,
+  TrendingUp, 
+  Zap,
+  Target,
 } from "lucide-react"
 
 import api from "@/services/api"
@@ -45,6 +48,265 @@ import UpdateRejectionModal from "@/components/modals/UpdateRejectionModal"
 import UpdateAdherenceModal from "@/components/modals/UpdateAdherenceModal"
 import UpdateTreatmentModal from "@/components/modals/UpdateTreatmentModal"
 import UpdateImmunosuppressionModal from "@/components/modals/UpdateImmunosuppressionModal"
+// ============================================
+// SCORE 2 COMPONENT - Follow-up Score
+// ============================================
+function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; transplantationId: string }) {
+  const [score2, setScore2] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [calculating, setCalculating] = useState(false)
+  const [showToast, setShowToast] = useState<{ message: string; type?: string } | null>(null)
+
+  useEffect(() => {
+    if (followUpId) {
+      fetchScore2()
+    }
+  }, [followUpId])
+
+  const fetchScore2 = async () => {
+    if (!followUpId) return
+    setLoading(true)
+    try {
+      // First check if score already exists for this follow-up
+      const res = await api.get(`/scores/history/${transplantationId}`)
+      const scoresData = res.data || []
+      const existingScore2 = scoresData.find((s: any) => s.score_type === "SCORE_2" && s.followup_id === followUpId)
+      setScore2(existingScore2 || null)
+    } catch (err) {
+      console.error("Error fetching SCORE 2:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const calculateScore2 = async () => {
+    if (!followUpId) return
+    
+    setCalculating(true)
+    try {
+      const response = await api.post(`/scores/calculate-score-2/${followUpId}`)
+      console.log("SCORE 2 response:", response.data)
+      
+      setScore2({
+        score_type: "SCORE_2",
+        value: response.data?.value || 0,
+        calculated_at: new Date().toISOString(),
+        details: response.data?.details || []
+      })
+      
+      showLocalToast("SCORE 2 calculated successfully!", "success")
+    } catch (err: any) {
+      console.error("Error calculating SCORE 2:", err)
+      showLocalToast(err.response?.data?.detail || "Failed to calculate SCORE 2", "error")
+    } finally {
+      setCalculating(false)
+    }
+  }
+
+  const showLocalToast = (message: string, type: "success" | "error" | "warning" = "success") => {
+    setShowToast({ message, type })
+    setTimeout(() => setShowToast(null), 3000)
+  }
+
+  const scoreValue = score2?.value || 0
+
+  const getScoreLevel = (score: number) => {
+    if (score >= 100) return { label: "Excellent", color: "text-green-600", bg: "bg-green-100", icon: CheckCircle, description: "Optimal follow-up status" }
+    if (score >= 60) return { label: "Good", color: "text-teal-600", bg: "bg-teal-100", icon: Shield, description: "Routine monitoring sufficient" }
+    if (score >= 20) return { label: "Moderate Concern", color: "text-yellow-600", bg: "bg-yellow-100", icon: Activity, description: "Increase monitoring frequency" }
+    return { label: "Poor", color: "text-red-600", bg: "bg-red-100", icon: AlertCircle, description: "Immediate intervention needed" }
+  }
+
+  const level = getScoreLevel(scoreValue)
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 rounded-lg p-2">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Post-Transplant Risk Score</p>
+              <p className="text-xs text-gray-400">Loading...</p>
+            </div>
+          </div>
+          <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="bg-gradient-to-r from-purple-50 to-white rounded-xl shadow-sm border border-purple-100 overflow-hidden mb-6">
+        <div className="px-5 py-3 bg-gradient-to-r from-purple-500 to-purple-600">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 rounded-lg p-1.5">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-sm">Post-Transplant Risk Score</h3>
+                <p className="text-purple-100 text-xs">SCORE 2 - Follow-up Assessment</p>
+              </div>
+            </div>
+            {!score2 ? (
+              <button
+                onClick={calculateScore2}
+                disabled={calculating}
+                className="px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-medium hover:bg-white/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {calculating ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  <>
+                    <Activity className="h-3 w-3" />
+                    Calculate Score
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={calculateScore2}
+                disabled={calculating}
+                className="px-3 py-1.5 bg-white/20 rounded-lg text-white text-xs font-medium hover:bg-white/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {calculating ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Recalculating...
+                  </>
+                ) : (
+                  <>
+                    <Activity className="h-3 w-3" />
+                    Recalculate
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {score2 ? (
+          <div className="p-5">
+            <div className="flex items-center gap-6">
+              {/* Score Circle */}
+              <div className="relative">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle cx="48" cy="48" r="42" fill="none" stroke="#e9d5ff" strokeWidth="6" />
+                  <circle 
+                    cx="48" cy="48" r="42" fill="none" stroke="#8b5cf6" strokeWidth="6" 
+                    strokeDasharray="263.89" 
+                    strokeDashoffset={263.89 - (scoreValue / 120) * 263.89}
+                    strokeLinecap="round"
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-purple-700">{scoreValue}</span>
+                  <span className="text-[10px] text-gray-400">/120</span>
+                </div>
+              </div>
+              
+              {/* Score Info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${level.bg}`}>
+                    <level.icon className={`h-3.5 w-3.5 ${level.color}`} />
+                    <span className={`text-xs font-semibold ${level.color}`}>{level.label}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {new Date(score2.calculated_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600">{level.description}</p>
+                
+                {/* Mini breakdown bars */}
+                {score2.details && score2.details.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 mb-2">Key Factors:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {score2.details.slice(0, 3).map((detail: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-1.5">
+                          <span className={`text-xs ${detail.impact >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {detail.impact > 0 ? "+" : ""}{detail.impact}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {detail.attribute.replace(/_/g, " ").substring(0, 15)}
+                          </span>
+                        </div>
+                      ))}
+                      {score2.details.length > 3 && (
+                        <span className="text-xs text-gray-400">+{score2.details.length - 3} more</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* View Details Button */}
+            <button
+              onClick={() => {
+                // Create modal to show full breakdown
+                const modal = document.createElement('div')
+                modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'
+                modal.innerHTML = `
+                  <div class="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+                    <div class="sticky top-0 bg-white px-5 py-4 border-b flex justify-between items-center">
+                      <h3 class="text-lg font-bold text-gray-800">SCORE 2 Breakdown</h3>
+                      <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+                    <div class="p-5 space-y-3">
+                      <div class="text-center mb-4">
+                        <span class="text-3xl font-bold text-purple-600">${scoreValue}</span>
+                        <span class="text-gray-400"> / 120</span>
+                        <div class="mt-2 inline-flex px-3 py-1 rounded-full ${level.bg}">
+                          <span class="text-sm font-semibold ${level.color}">${level.label}</span>
+                        </div>
+                      </div>
+                      <div class="border-t pt-3">
+                        ${score2.details.map((d: any) => `
+                          <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <div>
+                              <p class="text-sm font-medium text-gray-700">${d.attribute.replace(/_/g, " ").toUpperCase()}</p>
+                              <p class="text-xs text-gray-400">Value: ${d.value !== undefined ? d.value : 'N/A'}</p>
+                            </div>
+                            <span class="text-sm font-bold ${d.impact >= 0 ? 'text-green-600' : 'text-red-600'}">
+                              ${d.impact > 0 ? '+' : ''}${d.impact}
+                            </span>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                  </div>
+                `
+                document.body.appendChild(modal)
+              }}
+              className="mt-3 w-full text-center text-xs text-purple-600 hover:text-purple-700 font-medium"
+            >
+              View Full Breakdown →
+            </button>
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <div className="bg-purple-50 rounded-full p-3 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-purple-400" />
+            </div>
+            <p className="text-sm text-gray-500 mb-2">No risk score calculated yet</p>
+            <p className="text-xs text-gray-400">Click "Calculate Score" to assess post-transplant risk</p>
+          </div>
+        )}
+      </div>
+      {showToast && <Toast message={showToast.message} type={showToast.type as any} onClose={() => setShowToast(null)} />}
+    </>
+  )
+}
 
 export default function FollowUpDetailsPage() {
   const { id } = useParams()
@@ -403,6 +665,9 @@ export default function FollowUpDetailsPage() {
                 </div>
               </div>
             </div>
+
+            {/* SCORE 2 CARD  */}
+            <ScoreCard2 followUpId={currentFollowUpId} transplantationId={transplantationId || followUp?.transplantation_id} />
 
             {/* Print Content Container for Export */}
             <div id="followup-print-content">

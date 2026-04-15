@@ -1,3 +1,4 @@
+// components/layout/Navbar.tsx
 "use client"
 
 import { useAuth } from "@/features/auth/context"
@@ -11,6 +12,8 @@ import {
   Stethoscope,
   UserCog,
   CalendarCheck,
+  TrendingUp,
+  Settings,
 } from "lucide-react"
 
 export default function Navbar() {
@@ -86,6 +89,25 @@ export default function Navbar() {
       name: "Follow-ups",
       path: "/followups",
       icon: CalendarCheck,
+      roles: ["NEPHROLOGIST"]
+    })
+  }
+  // Scoring Rules - visible to Admin only
+  if (user?.role === "ADMIN") {
+  navigationItems.push({
+    name: "Scoring Rules",
+    path: "/admin/barems",
+    icon: Settings,
+    roles: ["ADMIN"]
+  })
+}
+
+  // Scores - visible to Nephrologist only
+  if (user?.role === "NEPHROLOGIST") {
+    navigationItems.push({
+      name: "Scores",
+      path: "/scores",
+      icon: TrendingUp,
       roles: ["NEPHROLOGIST"]
     })
   }

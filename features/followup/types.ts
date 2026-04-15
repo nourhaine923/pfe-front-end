@@ -127,4 +127,15 @@ export interface FullFollowUpData extends FollowUp {
   adverseEvents: AdverseEvent[]
   therapeuticTreatments: TherapeuticTreatment[]
   immunosuppressionRegimen: ImmunosuppressionRegimen | null
+    score2?: {
+    _id: string
+    score_type: string
+    value: number
+    calculated_at: string
+    details?: Array<{
+      attribute: string
+      value: any
+      impact: number
+    }>
+  }
 }
