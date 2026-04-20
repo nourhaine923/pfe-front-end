@@ -129,6 +129,50 @@ const SectionTitle = ({ title, icon: Icon }: { title: string; icon?: any }) => (
   </div>
 )
 
+/* -------------------- HELPER FUNCTIONS -------------------- */
+
+// Helper function to validate date is not after today (must be past or today)
+const validateDateNotAfterToday = (dateString: string, fieldName: string): string | null => {
+  if (!dateString) return null
+  
+  const inputDate = new Date(dateString)
+  const today = new Date()
+  
+  // Reset time part for accurate comparison
+  today.setHours(0, 0, 0, 0)
+  inputDate.setHours(0, 0, 0, 0)
+  
+  if (inputDate > today) {
+    return `${fieldName} cannot be after today's date`
+  }
+  
+  return null
+}
+
+// Helper function to validate date cannot exceed 1 year from today
+const validateDateNotExceedOneYear = (dateString: string, fieldName: string): string | null => {
+  if (!dateString) return null
+  
+  const inputDate = new Date(dateString)
+  const today = new Date()
+  const oneYearFromNow = new Date()
+  oneYearFromNow.setFullYear(today.getFullYear() + 1)
+  
+  // Reset time part for accurate comparison
+  today.setHours(0, 0, 0, 0)
+  inputDate.setHours(0, 0, 0, 0)
+  oneYearFromNow.setHours(0, 0, 0, 0)
+  
+  if (inputDate > oneYearFromNow) {
+    return `${fieldName} cannot exceed 1 year from today`
+  }
+  if (inputDate < today) {
+    return `${fieldName} cannot be in the past`
+  }
+  
+  return null
+}
+
 /* -------------------- MAIN COMPONENT -------------------- */
 
 interface Props {
@@ -288,6 +332,32 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
     }
   }
 
+  // Handle transplant date change with validation (cannot exceed 1 year from today)
+  const handleTransplantDateChange = (value: string) => {
+    setForm(prev => ({ ...prev, transplantDate: value }))
+    
+    // Clear previous error
+    if (errors.transplantDate) {
+      setErrors((prev: any) => ({ ...prev, transplantDate: undefined }))
+    }
+  }
+
+  // Handle EER start date change with validation (cannot be after today)
+  const handleEerStartDateChange = (value: string) => {
+    setForm(prev => ({
+      ...prev,
+      preTransplantAssessment: {
+        ...prev.preTransplantAssessment,
+        eerStartDate: value
+      }
+    }))
+    
+    // Clear previous error
+    if (errors.eerStartDate) {
+      setErrors((prev: any) => ({ ...prev, eerStartDate: undefined }))
+    }
+  }
+
   const donors = patients.filter(p => p.patientRole === "donor")
   const recipients = patients.filter(p => p.patientRole === "recipient")
 
@@ -333,7 +403,24 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
     const newErrors: any = {}
     const errorMessages: string[] = []
     
+    // STEP 1: Patient Selection
     if (step === 1) {
+      if (!form.donor_id) {
+        newErrors.donor_id = "Donor is required"
+        errorMessages.push("Donor is required")
+      }
+      if (!form.recipient_id) {
+        newErrors.recipient_id = "Recipient is required"
+        errorMessages.push("Recipient is required")
+      }
+      if (form.donor_id && form.recipient_id && form.donor_id === form.recipient_id) {
+        newErrors.recipient_id = "Donor and recipient cannot be the same"
+        errorMessages.push("Donor and recipient cannot be the same")
+      }
+    }
+    
+    // STEP 2: Pre-Transplant Assessment
+    if (step === 2) {
       if (!form.preTransplantAssessment.ageAtTransplant) {
         newErrors.ageAtTransplant = "Age at transplant is required"
         errorMessages.push("Age at transplant is required")
@@ -357,10 +444,19 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
         newErrors.eerModality = "EER Modality is required"
         errorMessages.push("EER Modality is required")
       }
+      
+      // Validate EER Start Date (cannot be after today)
       if (!form.preTransplantAssessment.eerStartDate) {
         newErrors.eerStartDate = "EER start date is required"
         errorMessages.push("EER start date is required")
+      } else {
+        const eerDateError = validateDateNotAfterToday(form.preTransplantAssessment.eerStartDate, "EER start date")
+        if (eerDateError) {
+          newErrors.eerStartDate = eerDateError
+          errorMessages.push(eerDateError)
+        }
       }
+      
       if (!form.preTransplantAssessment.trDelayMonths) {
         newErrors.trDelayMonths = "Transplant delay is required"
         errorMessages.push("Transplant delay is required")
@@ -377,21 +473,7 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
       }
     }
     
-    if (step === 2) {
-      if (!form.donor_id) {
-        newErrors.donor_id = "Donor is required"
-        errorMessages.push("Donor is required")
-      }
-      if (!form.recipient_id) {
-        newErrors.recipient_id = "Recipient is required"
-        errorMessages.push("Recipient is required")
-      }
-      if (form.donor_id && form.recipient_id && form.donor_id === form.recipient_id) {
-        newErrors.recipient_id = "Donor and recipient cannot be the same"
-        errorMessages.push("Donor and recipient cannot be the same")
-      }
-    }
-    
+    // STEP 3: Transplant Details
     if (step === 3) {
       if (!form.transplantNumber) {
         newErrors.transplantNumber = "Transplant number is required"
@@ -400,9 +482,17 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
         newErrors.transplantNumber = "This transplant number already exists"
         errorMessages.push("This transplant number already exists")
       }
+      
+      // Validate Transplant Date (cannot exceed 1 year from today)
       if (!form.transplantDate) {
         newErrors.transplantDate = "Transplant date is required"
         errorMessages.push("Transplant date is required")
+      } else {
+        const transplantDateError = validateDateNotExceedOneYear(form.transplantDate, "Transplant date")
+        if (transplantDateError) {
+          newErrors.transplantDate = transplantDateError
+          errorMessages.push(transplantDateError)
+        }
       }
     }
     
@@ -486,10 +576,10 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="max-h-[80vh] overflow-y-auto">
-        <div className="px-4 py-4">
+      <div className=" max-h-[80vh] overflow-y-auto w-full md:w-[700px] lg:w-[900px]">
+        <div className="px-4 py-6 ">
           {/* Sticky header */}
-          <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
+          <div className="sticky top-0 bg-white pb-5 mb-10 border-b z-10">
             <h2 className="text-2xl font-bold text-teal-900">Create New Transplantation</h2>
             <p className="text-sm text-gray-500 mt-1">Record a new kidney transplant procedure</p>
             
@@ -510,8 +600,8 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
             </div>
             <p className="text-xs text-gray-500 text-center mt-2">
               Step {step} of {totalSteps}:{" "}
-              {step === 1 && "Pre-Transplant Assessment"}
-              {step === 2 && "Patient Selection"}
+              {step === 1 && "Patient Selection"}
+              {step === 2 && "Pre-Transplant Assessment"}
               {step === 3 && "Transplant Details"}
             </p>
           </div>
@@ -522,8 +612,41 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Step 1: Pre-Transplant Assessment */}
+              {/* Step 1: Patient Selection */}
               {step === 1 && (
+                <>
+                  <SectionTitle title="Patient Selection" icon={User} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SelectField
+                      label="Donor"
+                      name="donor_id"
+                      options={donorOptions}
+                      required
+                      value={form.donor_id}
+                      onChange={(val: string) => handleChange("donor_id", val)}
+                      error={errors.donor_id}
+                    />
+                    <SelectField
+                      label="Recipient"
+                      name="recipient_id"
+                      options={recipientOptions}
+                      required
+                      value={form.recipient_id}
+                      onChange={(val: string) => handleChange("recipient_id", val)}
+                      error={errors.recipient_id}
+                    />
+                  </div>
+                  {donors.length === 0 && (
+                    <p className="text-sm text-yellow-600 mt-2">No donors available. Please create a donor first.</p>
+                  )}
+                  {recipients.length === 0 && (
+                    <p className="text-sm text-yellow-600 mt-2">No recipients available. Please create a recipient first.</p>
+                  )}
+                </>
+              )}
+
+              {/* Step 2: Pre-Transplant Assessment */}
+              {step === 2 && (
                 <>
                   <SectionTitle title="Pre-Transplant Assessment" icon={Stethoscope} />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -632,7 +755,7 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
                       type="date"
                       required
                       value={form.preTransplantAssessment.eerStartDate}
-                      onChange={(val: string) => handleAssessmentChange("eerStartDate", val)}
+                      onChange={handleEerStartDateChange}
                       error={errors.eerStartDate}
                     />
                     <InputField
@@ -646,39 +769,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
                       error={errors.trDelayMonths}
                     />
                   </div>
-                </>
-              )}
-
-              {/* Step 2: Patient Selection */}
-              {step === 2 && (
-                <>
-                  <SectionTitle title="Patient Selection" icon={User} />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <SelectField
-                      label="Donor"
-                      name="donor_id"
-                      options={donorOptions}
-                      required
-                      value={form.donor_id}
-                      onChange={(val: string) => handleChange("donor_id", val)}
-                      error={errors.donor_id}
-                    />
-                    <SelectField
-                      label="Recipient"
-                      name="recipient_id"
-                      options={recipientOptions}
-                      required
-                      value={form.recipient_id}
-                      onChange={(val: string) => handleChange("recipient_id", val)}
-                      error={errors.recipient_id}
-                    />
-                  </div>
-                  {donors.length === 0 && (
-                    <p className="text-sm text-yellow-600 mt-2">No donors available. Please create a donor first.</p>
-                  )}
-                  {recipients.length === 0 && (
-                    <p className="text-sm text-yellow-600 mt-2">No recipients available. Please create a recipient first.</p>
-                  )}
                 </>
               )}
 
@@ -722,7 +812,7 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
                       type="date"
                       required
                       value={form.transplantDate}
-                      onChange={(val: string) => handleChange("transplantDate", val)}
+                      onChange={handleTransplantDateChange}
                       error={errors.transplantDate}
                     />
                     <SelectField

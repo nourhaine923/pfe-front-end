@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Modal from "./Modal"
 import api from "@/services/api"
 import { Loader2, Activity, Heart, Droplet, AlertCircle } from "lucide-react"
@@ -15,7 +15,7 @@ interface Props {
     donorName: string
     recipientName: string
   }
-  showToast?: (message: string, type?: "success" | "error") => void
+  showToast?: (message: string, type?: "success" | "error" | "warning") => void
 }
 
 export default function CreateOutcomeModal({ 
@@ -35,6 +35,20 @@ export default function CreateOutcomeModal({
     lostToFollowUp: false,
     delayedGraftFunction: false
   })
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        lastNewsDate: "",
+        aliveWithFunctioningGraft: false,
+        returnToDialysis: false,
+        deathWithFunctioningGraft: false,
+        lostToFollowUp: false,
+        delayedGraftFunction: false
+      })
+    }
+  }, [isOpen])
 
   const handleCheckboxChange = (field: string, checked: boolean) => {
     // When selecting one, unselect others (mutually exclusive except delayedGraftFunction)
@@ -79,29 +93,18 @@ export default function CreateOutcomeModal({
       })
       showToast?.("Outcome recorded successfully!", "success")
       onCreated()
-      handleClose()
+      onClose()
     } catch (err: any) {
       console.error("Error creating outcome:", err)
-      showToast?.(err.response?.data?.detail || "Failed to record outcome", "error")
+      const errorMessage = err.response?.data?.detail || "Failed to record outcome"
+      showToast?.(errorMessage, "error")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleClose = () => {
-    setForm({
-      lastNewsDate: "",
-      aliveWithFunctioningGraft: false,
-      returnToDialysis: false,
-      deathWithFunctioningGraft: false,
-      lostToFollowUp: false,
-      delayedGraftFunction: false
-    })
-    onClose()
-  }
-
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
+    <Modal isOpen={isOpen} onClose={onClose}>
       <div className="max-h-[80vh] overflow-y-auto">
         <div className="px-4 py-4">
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
@@ -144,6 +147,7 @@ export default function CreateOutcomeModal({
                 value={form.lastNewsDate}
                 onChange={(e) => setForm(prev => ({ ...prev, lastNewsDate: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                max={new Date().toISOString().split('T')[0]}
               />
             </div>
 
@@ -218,7 +222,7 @@ export default function CreateOutcomeModal({
 
           <div className="sticky bottom-0 bg-white pt-4 mt-6 border-t flex justify-end gap-3">
             <button
-              onClick={handleClose}
+              onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Cancel

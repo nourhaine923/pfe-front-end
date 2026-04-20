@@ -19,17 +19,12 @@ import {
   Hospital,
   Syringe,
   FileText,
-  CheckCircle,
-  XCircle,
   Loader2,
-  Download,
-  Printer,
   Zap,
   Target,
   Shield,
-  Brain,
-  Sparkles,
-  TrendingUp
+  CheckCircle,
+  XCircle,
 } from "lucide-react"
 import api from "@/services/api"
 import Toast from "@/components/ui/Toast"
@@ -37,16 +32,18 @@ import DeleteTransplantationModal from "@/components/modals/DeleteTransplantatio
 import UpdateTransplantationModal from "@/components/modals/UpdateTransplantationModal"
 import CreateCrossmatchModal from "@/components/modals/CreateCrossmatchModal"
 import CreateOutcomeModal from "@/components/modals/CreateOutcomeModal"
+import ExportButton from "@/components/ui/ExportButton"
 
 
-// INDEPENDENT SCORE CARDS COMPONENT 
+// ============================================
+// SCORE CARDS COMPONENT WITH MESSAGES
+// ============================================
 function ScoreCards({ transplantationId }: { transplantationId: string }) {
   const [scores, setScores] = useState<{ score1?: any; score3?: any }>({})
   const [loading, setLoading] = useState(true)
   const [calculating, setCalculating] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type?: string } | null>(null)
 
-  // Fetch scores on mount and when transplantationId changes
   useEffect(() => {
     if (transplantationId) {
       fetchScores()
@@ -85,7 +82,6 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
       const response = await api.post(endpoint)
       console.log(`${scoreType} response:`, response.data)
       
-      // Create a new score object from response
       const newScore = {
         score_type: scoreType,
         value: response.data?.score || response.data?.value || 0,
@@ -93,7 +89,6 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
         details: response.data?.used_attributes || response.data?.details || []
       }
       
-      // Update only the specific score without refreshing the page
       setScores(prev => ({
         ...prev,
         [scoreType === "SCORE_1" ? "score1" : "score3"]: newScore
@@ -116,20 +111,111 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
   const urgencyScore = scores.score1?.value || 0
   const successScore = scores.score3?.value || 0
 
-  const getUrgencyLevel = (score: number) => {
-    if (score >= 80) return { label: "High Priority", color: "text-red-600", bg: "bg-red-100", icon: AlertCircle }
-    if (score >= 60) return { label: "Medium Priority", color: "text-yellow-600", bg: "bg-yellow-100", icon: Activity }
-    return { label: "Low Priority", color: "text-green-600", bg: "bg-green-100", icon: Shield }
+  // SCORE 1 - Urgency Score Messages
+  const getUrgencyMessage = (score: number) => {
+    if (score >= 80) {
+      return {
+        title: "⚠️ High Priority - Urgent Transplantation Recommended",
+        message: "Patient has critical clinical indicators. Expedite transplant evaluation immediately.",
+        recommendation: "• Schedule urgent transplant committee meeting\n• Fast-track HLA typing and crossmatching\n• Consider living donor options\n• Prepare for potential inpatient transplantation",
+        color: "text-red-700",
+        bg: "bg-red-50",
+        border: "border-red-200",
+        iconColor: "text-red-500"
+      }
+    }
+    if (score >= 60) {
+      return {
+        title: "🟠 Medium Priority - Timely Transplantation Recommended",
+        message: "Patient shows significant clinical deterioration risk. Transplantation should be prioritized.",
+        recommendation: "• Complete pre-transplant workup within 4 weeks\n• Actively search for donor matches\n• Optimize comorbidities management\n• Schedule regular follow-ups every 2 weeks",
+        color: "text-orange-700",
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+        iconColor: "text-orange-500"
+      }
+    }
+    if (score >= 40) {
+      return {
+        title: "🟡 Low Priority - Routine Evaluation",
+        message: "Patient has moderate risk factors. Standard transplant evaluation pathway.",
+        recommendation: "• Complete standard pre-transplant workup\n• Routine donor search\n• Monthly follow-up appointments\n• Continue medical management",
+        color: "text-yellow-700",
+        bg: "bg-yellow-50",
+        border: "border-yellow-200",
+        iconColor: "text-yellow-500"
+      }
+    }
+    if (score >= 20) {
+      return {
+        title: "🟢 Very Low Priority - Elective Evaluation",
+        message: "Patient has mild risk factors. Elective transplant evaluation acceptable.",
+        recommendation: "• Routine pre-transplant workup\n• Standard donor evaluation\n• Quarterly follow-up appointments\n• Focus on preventive care",
+        color: "text-green-700",
+        bg: "bg-green-50",
+        border: "border-green-200",
+        iconColor: "text-green-500"
+      }
+    }
+    return {
+      title: "✅ Excellent Status - Routine Monitoring",
+      message: "Patient has minimal risk factors. Excellent candidate for transplantation.",
+      recommendation: "• Standard pre-transplant evaluation\n• Routine donor matching\n• Semi-annual follow-ups\n• Continue current management",
+      color: "text-teal-700",
+      bg: "bg-teal-50",
+      border: "border-teal-200",
+      iconColor: "text-teal-500"
+    }
   }
 
-  const getSuccessLikelihood = (score: number) => {
-    if (score >= 70) return { label: "High Likelihood", color: "text-green-600", bg: "bg-green-100" }
-    if (score >= 50) return { label: "Moderate Likelihood", color: "text-yellow-600", bg: "bg-yellow-100" }
-    return { label: "Low Likelihood", color: "text-red-600", bg: "bg-red-100" }
+  // SCORE 3 - Success Probability Messages
+  const getSuccessMessage = (score: number) => {
+    if (score >= 70) {
+      return {
+        title: "🎯 Excellent Outcome Probability",
+        message: "High likelihood of successful graft survival (>90% at 1 year).",
+        recommendation: "• Proceed with standard transplant protocol\n• Excellent candidate for living donation\n• Standard immunosuppression regimen\n• Routine post-transplant monitoring",
+        color: "text-green-700",
+        bg: "bg-green-50",
+        border: "border-green-200",
+        iconColor: "text-green-500"
+      }
+    }
+    if (score >= 50) {
+      return {
+        title: "📈 Good Outcome Probability",
+        message: "Moderate to high likelihood of successful graft survival (75-90% at 1 year).",
+        recommendation: "• Proceed with transplantation\n• Optimize immunosuppression protocol\n• Close post-transplant monitoring first 3 months\n• Consider prophylactic medications",
+        color: "text-teal-700",
+        bg: "bg-teal-50",
+        border: "border-teal-200",
+        iconColor: "text-teal-500"
+      }
+    }
+    if (score >= 30) {
+      return {
+        title: "⚠️ Moderate Outcome Probability",
+        message: "Fair likelihood of graft survival (50-75% at 1 year). Enhanced monitoring needed.",
+        recommendation: "• Consider individualized immunosuppression\n• Intensive post-transplant monitoring\n• Regular protocol biopsies\n• Optimize comorbidity management pre-transplant",
+        color: "text-yellow-700",
+        bg: "bg-yellow-50",
+        border: "border-yellow-200",
+        iconColor: "text-yellow-500"
+      }
+    }
+    return {
+      title: "⚡ Lower Outcome Probability",
+      message: "Reduced likelihood of graft survival (<50% at 1 year). High-risk transplantation.",
+      recommendation: "• Consider combined organ transplant if indicated\n• Enhanced immunosuppression protocol\n• Very close post-transplant monitoring\n• Discuss realistic expectations with patient\n• Consider research protocols",
+      color: "text-red-700",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      iconColor: "text-red-500"
+    }
   }
 
-  const urgency = getUrgencyLevel(urgencyScore)
-  const success = getSuccessLikelihood(successScore)
+  const urgencyMsg = getUrgencyMessage(urgencyScore)
+  const successMsg = getSuccessMessage(successScore)
 
   if (loading && !scores.score1 && !scores.score3) {
     return (
@@ -175,27 +261,44 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
               </button>
             </div>
           </div>
-          <div className="p-6 text-center">
-            <div className="relative inline-flex mb-4">
-              <div className="w-32 h-32 rounded-full border-8 border-orange-200 flex items-center justify-center">
-                <span className="text-4xl font-bold text-orange-600">{urgencyScore}</span>
+          <div className="p-6">
+            <div className="flex items-center gap-6 mb-4">
+              <div className="relative">
+                <div className="w-28 h-28 rounded-full border-8 border-orange-200 flex items-center justify-center">
+                  <span className="text-3xl font-bold text-orange-600">{urgencyScore}</span>
+                </div>
+                <div 
+                  className="absolute inset-0 rounded-full border-8 border-orange-500 transition-all duration-500 ease-out"
+                  style={{ 
+                    clipPath: `polygon(0 0, 100% 0, 100% ${100 - urgencyScore}%, 0 ${100 - urgencyScore}%)`,
+                  }}
+                />
               </div>
-              <div 
-                className="absolute inset-0 rounded-full border-8 border-orange-500 transition-all duration-500 ease-out"
-                style={{ 
-                  clipPath: `polygon(0 0, 100% 0, 100% ${100 - urgencyScore}%, 0 ${100 - urgencyScore}%)`,
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${urgency.bg}`}>
-                <urgency.icon className={`h-4 w-4 ${urgency.color}`} />
-                <span className={`text-sm font-semibold ${urgency.color}`}>{urgency.label}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${urgencyMsg.bg} ${urgencyMsg.color}`}>
+                    {urgencyScore >= 60 ? "High Priority" : urgencyScore >= 40 ? "Medium Priority" : urgencyScore >= 20 ? "Low Priority" : "Routine"}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">{urgencyMsg.message}</p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Based on clinical deterioration risk assessment
-            </p>
+            
+            <div className={`mt-4 p-3 rounded-lg ${urgencyMsg.bg} border ${urgencyMsg.border}`}>
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5">
+                  <svg className={`h-4 w-4 ${urgencyMsg.iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${urgencyMsg.color}`}>Recommendations:</p>
+                  <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
+                    {urgencyMsg.recommendation}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -225,28 +328,48 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
               </button>
             </div>
           </div>
-          <div className="p-6 text-center">
-            <div className="relative inline-flex mb-4">
-              <svg className="w-32 h-32 transform -rotate-90">
-                <circle cx="64" cy="64" r="56" fill="none" stroke="#e6fffa" strokeWidth="8" />
-                <circle 
-                  cx="64" cy="64" r="56" fill="none" stroke="#14b8a6" strokeWidth="8" 
-                  strokeDasharray="351.85" 
-                  strokeDashoffset={351.85 - (successScore / 100) * 351.85}
-                  strokeLinecap="round"
-                  className="transition-all duration-700 ease-out"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-teal-600">{successScore}%</span>
+          <div className="p-6">
+            <div className="flex items-center gap-6 mb-4">
+              <div className="relative">
+                <svg className="w-28 h-28 transform -rotate-90">
+                  <circle cx="56" cy="56" r="48" fill="none" stroke="#e6fffa" strokeWidth="8" />
+                  <circle 
+                    cx="56" cy="56" r="48" fill="none" stroke="#14b8a6" strokeWidth="8" 
+                    strokeDasharray="301.59" 
+                    strokeDashoffset={301.59 - (successScore / 100) * 301.59}
+                    strokeLinecap="round"
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-teal-600">{successScore}%</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${successMsg.bg} ${successMsg.color}`}>
+                    {successScore >= 70 ? "Excellent" : successScore >= 50 ? "Good" : successScore >= 30 ? "Moderate" : "Lower"} Probability
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">{successMsg.message}</p>
               </div>
             </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-100">
-              <span className={`text-sm font-semibold ${success.color}`}>{success.label}</span>
+            
+            <div className={`mt-4 p-3 rounded-lg ${successMsg.bg} border ${successMsg.border}`}>
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5">
+                  <svg className={`h-4 w-4 ${successMsg.iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${successMsg.color}`}>Recommendations:</p>
+                  <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
+                    {successMsg.recommendation}
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Graft survival & outcome prediction
-            </p>
           </div>
         </div>
       </div>
@@ -338,6 +461,7 @@ export default function TransplantationDetailsPage() {
   const [updateOpen, setUpdateOpen] = useState(false)
   const [crossmatchOpen, setCrossmatchOpen] = useState(false)
   const [outcomeOpen, setOutcomeOpen] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -380,6 +504,22 @@ export default function TransplantationDetailsPage() {
     }
   }
 
+  const updateTransplantationStatus = async (newStatus: "APPROVED" | "REJECTED") => {
+    if (!transplantation) return
+    
+    setUpdatingStatus(true)
+    try {
+      await api.patch(`/transplantations/${id}`, { status: newStatus })
+      setTransplantation({ ...transplantation, status: newStatus })
+      showToast(`Transplantation ${newStatus.toLowerCase()} successfully!`, "success")
+    } catch (err: any) {
+      console.error("Error updating status:", err)
+      showToast(err.response?.data?.detail || "Failed to update status", "error")
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
   const showToast = (message: string, type: "success" | "error" | "warning" = "success") => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
@@ -394,45 +534,6 @@ export default function TransplantationDetailsPage() {
     })
   }
 
-  const handleExportPDF = () => {
-    const printContent = document.getElementById('transplantation-print-content')
-    if (!printContent) return
-    
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      showToast("Please allow popups to print/export", "error")
-      return
-    }
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Transplantation Report</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; }
-          .section { margin-bottom: 25px; }
-          .section-title { font-size: 18px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #ddd; margin-bottom: 15px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background: #f3f4f6; }
-        </style>
-      </head>
-      <body>
-        ${printContent.innerHTML}
-        <div class="footer" style="text-align: center; margin-top: 40px; font-size: 12px;">
-          Generated on ${new Date().toLocaleString()} | KTOuIP
-        </div>
-      </body>
-      </html>
-    `)
-    
-    printWindow.document.close()
-    printWindow.print()
-    printWindow.close()
-  }
-
   const getStatusColor = (status?: string) => {
     switch(status) {
       case "APPROVED": return "bg-green-100 text-green-800"
@@ -443,8 +544,8 @@ export default function TransplantationDetailsPage() {
 
   const getStatusIcon = (status?: string) => {
     switch(status) {
-      case "APPROVED": return <Activity className="h-5 w-5 text-green-600" />
-      case "REJECTED": return <AlertCircle className="h-5 w-5 text-red-600" />
+      case "APPROVED": return <CheckCircle className="h-5 w-5 text-green-600" />
+      case "REJECTED": return <XCircle className="h-5 w-5 text-red-600" />
       default: return <Clock className="h-5 w-5 text-yellow-600" />
     }
   }
@@ -506,18 +607,64 @@ export default function TransplantationDetailsPage() {
               Back
             </button>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={handleExportPDF} className="inline-flex items-center gap-2 px-4 py-2 text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100">
-                <Download className="h-4 w-4" />
-                Export PDF
-              </button>
+              <ExportButton
+                type="transplantation"
+                id={transplantation._id}
+                filename={`Transplantation_${transplantation.transplantNumber}`}
+                buttonText="Export PDF"
+                variant="outline"
+                size="md"
+                showToast={showToast}
+              />
+              
               <button onClick={() => setCrossmatchOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100">
                 <Syringe className="h-4 w-4" />
                 Add Crossmatch
               </button>
-              <button onClick={() => setOutcomeOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100">
-                <Activity className="h-4 w-4" />
-                Record Outcome
-              </button>
+              
+              {/* Approve Button - Only show for PENDING status */}
+              {transplantation.status === "PENDING" && (
+                <button 
+                  onClick={() => updateTransplantationStatus("APPROVED")}
+                  disabled={updatingStatus}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 disabled:opacity-50"
+                >
+                  {updatingStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  Approve
+                </button>
+              )}
+              
+              {/* Reject Button - Only show for PENDING status */}
+              {transplantation.status === "PENDING" && (
+                <button 
+                  onClick={() => updateTransplantationStatus("REJECTED")}
+                  disabled={updatingStatus}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                >
+                  {updatingStatus ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )}
+                  Reject
+                </button>
+              )}
+              
+              {/* Record Outcome Button - Only for APPROVED with no outcome */}
+              {transplantation.status === "APPROVED" && !outcome && (
+                <button 
+                  onClick={() => setOutcomeOpen(true)} 
+                  className="inline-flex items-center gap-2 px-4 py-2 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100"
+                >
+                  <Activity className="h-4 w-4" />
+                  Record Outcome
+                </button>
+              )}
+              
               <button onClick={() => setUpdateOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 rounded-lg hover:bg-green-100">
                 <Edit2 className="h-4 w-4" />
                 Update
@@ -630,6 +777,59 @@ export default function TransplantationDetailsPage() {
                             <p className="text-sm text-gray-600 mt-1">Method: {test.methode}</p>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Outcome section */}
+                  {outcome && (
+                    <div>
+                      <SectionTitle title="Outcome" icon={Activity} />
+                      <div className="bg-gradient-to-r from-purple-50 to-white rounded-xl p-4 border border-purple-100">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-purple-100">
+                            <span className="text-sm font-medium text-purple-700">Last Follow-up</span>
+                            <span className="text-sm text-gray-600">{formatDate(outcome.lastNewsDate)}</span>
+                          </div>
+                          <div className="pt-2">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Patient Status</p>
+                            <div className="grid grid-cols-1 gap-2">
+                              {outcome.aliveWithFunctioningGraft && (
+                                <div className="flex items-center gap-2 p-2 bg-green-100 rounded-lg">
+                                  <Heart className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm font-medium text-green-700">Alive with Functioning Graft</span>
+                                </div>
+                              )}
+                              {outcome.returnToDialysis && (
+                                <div className="flex items-center gap-2 p-2 bg-yellow-100 rounded-lg">
+                                  <Droplet className="h-4 w-4 text-yellow-600" />
+                                  <span className="text-sm font-medium text-yellow-700">Return to Dialysis</span>
+                                </div>
+                              )}
+                              {outcome.deathWithFunctioningGraft && (
+                                <div className="flex items-center gap-2 p-2 bg-red-100 rounded-lg">
+                                  <AlertCircle className="h-4 w-4 text-red-600" />
+                                  <span className="text-sm font-medium text-red-700">Death with Functioning Graft</span>
+                                </div>
+                              )}
+                              {outcome.lostToFollowUp && (
+                                <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg">
+                                  <AlertCircle className="h-4 w-4 text-gray-600" />
+                                  <span className="text-sm font-medium text-gray-700">Lost to Follow Up</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {outcome.delayedGraftFunction && (
+                            <div className="pt-2">
+                              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Complications</p>
+                              <div className="flex items-center gap-2 p-2 bg-blue-100 rounded-lg">
+                                <Activity className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm font-medium text-blue-700">Delayed Graft Function</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

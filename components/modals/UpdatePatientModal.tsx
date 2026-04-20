@@ -54,7 +54,7 @@ const InputField = ({
         value={form[name] || ""}
         onChange={handleInputChange}
         inputMode={numeric ? "numeric" : "text"}
-        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all
+        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all
         ${errors[name] ? "border-red-500" : "border-gray-300"}`}
         {...props}
       />
@@ -94,7 +94,7 @@ const SelectField = ({
         name={name}
         value={form[name] || ""}
         onChange={handleChange}
-        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white
+        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white
         ${errors[name] ? "border-red-500" : "border-gray-300"}`}
       >
         <option value="">Select {label}</option>
@@ -127,7 +127,7 @@ const CheckboxField = ({ label, name, form, setForm }: any) => {
           onChange={handleChange}
           className="sr-only peer"
         />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-900"></div>
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-900"></div>
       </label>
     </div>
   )
@@ -407,7 +407,7 @@ export default function UpdatePatientModal({
         <div className="px-4 py-4">
           {/* Sticky header */}
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
-            <h2 className="text-2xl font-bold text-blue-900">Update Patient</h2>
+            <h2 className="text-2xl font-bold text-teal-900">Update Patient</h2>
             <p className="text-sm text-gray-500 mt-1">
               Editing: {patient.firstName} {patient.lastName} (MRN: {patient.medicalRecordNumber})
             </p>
@@ -514,7 +514,7 @@ export default function UpdatePatientModal({
 
             {/* Donor Specific Fields */}
             {form.patientRole === "donor" && (
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-teal-50 p-4 rounded-lg">
                 <SectionTitle title="Donor Information" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <InputField
@@ -656,7 +656,7 @@ export default function UpdatePatientModal({
             <button
               onClick={handleUpdate}
               disabled={loading}
-              className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-teal-900 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>

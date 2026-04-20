@@ -19,7 +19,6 @@ import {
   CheckCircle,
   Clock,
   Plus,
-  Download,
   Shield,
   FlaskConical,
   Hospital,
@@ -27,8 +26,6 @@ import {
   ListTodo,
   ChevronRight,
   TrendingUp, 
-  Zap,
-  Target,
 } from "lucide-react"
 
 import api from "@/services/api"
@@ -39,6 +36,7 @@ import UpdateFollowUpModal from "@/components/modals/UpdateFollowUpModal"
 import CreateFollowUpModal from "@/components/modals/CreateFollowUpModal"
 import CreateAdverseEventModal from "@/components/modals/CreateAdverseEventModal"
 import { formatDate, formatDateTime } from "@/utils/exportUtils"
+import ExportButton from "@/components/ui/ExportButton"
 
 // Update Modals
 import UpdateVitalSignsModal from "@/components/modals/UpdateVitalSignsModal"
@@ -48,8 +46,9 @@ import UpdateRejectionModal from "@/components/modals/UpdateRejectionModal"
 import UpdateAdherenceModal from "@/components/modals/UpdateAdherenceModal"
 import UpdateTreatmentModal from "@/components/modals/UpdateTreatmentModal"
 import UpdateImmunosuppressionModal from "@/components/modals/UpdateImmunosuppressionModal"
+
 // ============================================
-// SCORE 2 COMPONENT - Follow-up Score
+// SCORE 2 COMPONENT - Follow-up Score with Messages
 // ============================================
 function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; transplantationId: string }) {
   const [score2, setScore2] = useState<any>(null)
@@ -67,7 +66,6 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
     if (!followUpId) return
     setLoading(true)
     try {
-      // First check if score already exists for this follow-up
       const res = await api.get(`/scores/history/${transplantationId}`)
       const scoresData = res.data || []
       const existingScore2 = scoresData.find((s: any) => s.score_type === "SCORE_2" && s.followup_id === followUpId)
@@ -117,7 +115,50 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
     return { label: "Poor", color: "text-red-600", bg: "bg-red-100", icon: AlertCircle, description: "Immediate intervention needed" }
   }
 
+  // SCORE 2 Message Functions
+  const getScore2Message = (score: number) => {
+    if (score >= 100) {
+      return {
+        title: "🌟 Excellent Follow-up Status",
+        message: "Patient is in optimal condition with excellent graft function.",
+        recommendation: "• Continue current immunosuppression regimen\n• Routine follow-up every 6 months\n• Standard monitoring protocol\n• Encourage healthy lifestyle",
+        color: "text-green-700",
+        bg: "bg-green-50",
+        border: "border-green-200"
+      }
+    }
+    if (score >= 60) {
+      return {
+        title: "✅ Good Follow-up Status",
+        message: "Patient has good graft function with stable clinical parameters.",
+        recommendation: "• Continue current management\n• Routine follow-up every 3 months\n• Monitor creatinine and eGFR trends\n• Review medications at each visit",
+        color: "text-teal-700",
+        bg: "bg-teal-50",
+        border: "border-teal-200"
+      }
+    }
+    if (score >= 20) {
+      return {
+        title: "⚠️ Moderate Concern - Increase Monitoring",
+        message: "Patient shows some concerning trends requiring closer follow-up.",
+        recommendation: "• Increase follow-up frequency to monthly\n• Consider adjusting immunosuppression\n• Monitor for rejection signs\n• Review medication adherence\n• Schedule protocol biopsy if indicated",
+        color: "text-yellow-700",
+        bg: "bg-yellow-50",
+        border: "border-yellow-200"
+      }
+    }
+    return {
+      title: "🚨 Poor Status - Immediate Intervention Needed",
+      message: "Patient has significant abnormalities requiring urgent evaluation.",
+      recommendation: "• Immediate nephrology consultation\n• Consider hospital admission\n• Urgent labs and imaging\n• Evaluate for rejection/infection\n• Adjust immunosuppression urgently",
+      color: "text-red-700",
+      bg: "bg-red-50",
+      border: "border-red-200"
+    }
+  }
+
   const level = getScoreLevel(scoreValue)
+  const scoreMessage = getScore2Message(scoreValue)
 
   if (loading) {
     return (
@@ -225,35 +266,60 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
                   </span>
                 </div>
                 <p className="text-xs text-gray-600">{level.description}</p>
-                
-                {/* Mini breakdown bars */}
-                {score2.details && score2.details.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <p className="text-xs font-medium text-gray-500 mb-2">Key Factors:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {score2.details.slice(0, 3).map((detail: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1.5">
-                          <span className={`text-xs ${detail.impact >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {detail.impact > 0 ? "+" : ""}{detail.impact}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {detail.attribute.replace(/_/g, " ").substring(0, 15)}
-                          </span>
-                        </div>
-                      ))}
-                      {score2.details.length > 3 && (
-                        <span className="text-xs text-gray-400">+{score2.details.length - 3} more</span>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Recommendation Box */}
+            <div className={`mt-4 p-3 rounded-lg ${scoreMessage.bg} border ${scoreMessage.border}`}>
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5">
+                  {scoreValue >= 60 ? (
+                    <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${scoreMessage.color}`}>{scoreMessage.title}</p>
+                  <p className="text-xs text-gray-600 mt-1">{scoreMessage.message}</p>
+                  <div className="text-xs text-gray-600 mt-2 whitespace-pre-line">
+                    <span className="font-medium">Recommendations:</span>
+                    <br />
+                    {scoreMessage.recommendation}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Mini breakdown bars */}
+            {score2.details && score2.details.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-500 mb-2">Key Factors:</p>
+                <div className="flex flex-wrap gap-2">
+                  {score2.details.slice(0, 3).map((detail: any, idx: number) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <span className={`text-xs ${detail.impact >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {detail.impact > 0 ? "+" : ""}{detail.impact}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {detail.attribute.replace(/_/g, " ").substring(0, 15)}
+                      </span>
+                    </div>
+                  ))}
+                  {score2.details.length > 3 && (
+                    <span className="text-xs text-gray-400">+{score2.details.length - 3} more</span>
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* View Details Button */}
             <button
               onClick={() => {
-                // Create modal to show full breakdown
                 const modal = document.createElement('div')
                 modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'
                 modal.innerHTML = `
@@ -308,6 +374,9 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
   )
 }
 
+// ============================================
+// MAIN PAGE COMPONENT
+// ============================================
 export default function FollowUpDetailsPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -436,51 +505,6 @@ export default function FollowUpDetailsPage() {
     { id: "immunosuppression", label: "Immunosuppression", icon: Shield }
   ]
 
-  // Simple PDF export function
-  const handleExportPDF = () => {
-    const printContent = document.getElementById('followup-print-content')
-    if (!printContent) {
-      showToast("Content not found", "error")
-      return
-    }
-    
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      showToast("Please allow popups to export", "error")
-      return
-    }
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Follow-up Report - ${formatDate(followUp?.visitDate)}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-          .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #333; }
-          .header h1 { margin: 0; color: #2563eb; }
-          .patient-info { background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-          .section { margin-bottom: 25px; page-break-inside: avoid; }
-          .section-title { font-size: 18px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; margin-bottom: 15px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-          th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
-          th { background: #f3f4f6; font-weight: bold; }
-          .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #d1d5db; font-size: 12px; color: #6b7280; }
-          @media print { body { margin: 0; padding: 0; } }
-        </style>
-      </head>
-      <body>
-        ${printContent.innerHTML}
-        <div class="footer"><p>Generated on ${new Date().toLocaleString()} | KTOuIP</p></div>
-      </body>
-      </html>
-    `)
-    
-    printWindow.document.close()
-    printWindow.print()
-    printWindow.onafterprint = () => printWindow.close()
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -546,9 +570,15 @@ export default function FollowUpDetailsPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleExportPDF} className="inline-flex items-center gap-2 px-4 py-2 text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100">
-                <Download className="h-4 w-4" /> Export PDF
-              </button>
+              <ExportButton
+                type="followup"
+                id={currentFollowUpId}
+                filename={`Follow-up_${formatDate(followUp?.visitDate)}`}
+                buttonText="Export PDF"
+                variant="outline"
+                size="md"
+                showToast={showToast}
+              />
               <button onClick={() => setUpdateOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 rounded-lg hover:bg-green-100">
                 <Edit2 className="h-4 w-4" /> Edit
               </button>
@@ -566,7 +596,7 @@ export default function FollowUpDetailsPage() {
           <div className="lg:w-80 flex-shrink-0 text-gray-50">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
               <div className="px-4 py-3 border-b bg-white">
-                <div className="flex items-center gap-2 ">
+                <div className="flex items-center gap-2">
                   <ListTodo className="h-5 w-5 text-teal-600" />
                   <h3 className="font-semibold text-teal-800">Follow-up Visits</h3>
                 </div>
@@ -663,10 +693,13 @@ export default function FollowUpDetailsPage() {
                     </div>
                   </div>
                 </div>
+                <button onClick={() => setUpdateOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 rounded-lg hover:bg-green-100">
+                  <Edit2 className="h-4 w-4" /> Edit
+                </button>
               </div>
             </div>
 
-            {/* SCORE 2 CARD  */}
+            {/* SCORE 2 CARD */}
             <ScoreCard2 followUpId={currentFollowUpId} transplantationId={transplantationId || followUp?.transplantation_id} />
 
             {/* Print Content Container for Export */}

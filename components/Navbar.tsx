@@ -71,18 +71,7 @@ export default function Navbar() {
       icon: UserCog,
       roles: ["ADMIN"]
     })
-  }
-
-  // Statistics - visible to Admin only
-  if (user?.role === "ADMIN") {
-    navigationItems.push({
-      name: "Statistics",
-      path: "/statistics",
-      icon: Activity,
-      roles: ["ADMIN"]
-    })
-  }
-  
+  }  
   // Follow-ups - visible to Nephrologist only
   if (user?.role === "NEPHROLOGIST") {
     navigationItems.push({
@@ -164,7 +153,7 @@ export default function Navbar() {
       </div>
 
       {/* User Info & Logout */}
-      <div className="border-t border-white/20 p-4">
+      <div className="p-4">
         <div className="mb-4 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="bg-white/20 rounded-full p-1">

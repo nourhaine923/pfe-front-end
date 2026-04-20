@@ -1,27 +1,12 @@
-// app/admin/barems/page.tsx
 "use client"
-
 import { useEffect, useState } from "react"
 import { useAuth } from "@/features/auth/context"
 import { useRouter } from "next/navigation"
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  Settings,
-  Zap,
-  Target,
-  Activity,
-  Search
-} from "lucide-react"
+import { Plus,Edit2,Trash2, Loader2,ChevronDown,ChevronUp,Settings,Zap,Target,Activity,Search,AlertCircle} from "lucide-react"
 import api from "@/services/api"
 import Toast from "@/components/ui/Toast"
 import BaremModal from "@/components/admin/BaremModal"
-import { getAttributesByScore } from "./attributes"  // Import from the new file
-
+import { getAttributesByScore } from "./attributes"
 // Types
 interface Barem {
   _id: string
@@ -29,7 +14,6 @@ interface Barem {
   key: string
   values: any[]
 }
-
 export default function BaremManagementPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -128,7 +112,7 @@ export default function BaremManagementPage() {
           </div>
         </div>
 
-        {/* Score Type Tabs */}
+        {/* Score Type Tabs  */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
           <div className="border-b border-gray-200">
             <nav className="flex gap-1 px-4">
@@ -138,7 +122,7 @@ export default function BaremManagementPage() {
                   selectedScore === "SCORE_1" ? "border-orange-600 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Zap className="h-4 w-4" /> SCORE 1 - Pre-transplant
+                <Zap className="h-4 w-4" /> SCORE 1 - Transplant Urgency
               </button>
               <button
                 onClick={() => setSelectedScore("SCORE_2")}
@@ -146,7 +130,7 @@ export default function BaremManagementPage() {
                   selectedScore === "SCORE_2" ? "border-purple-600 text-purple-600" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Activity className="h-4 w-4" /> SCORE 2 - Post-transplant
+                <Activity className="h-4 w-4" /> SCORE 2 - Post-Transplant Risk
               </button>
               <button
                 onClick={() => setSelectedScore("SCORE_3")}
@@ -154,7 +138,7 @@ export default function BaremManagementPage() {
                   selectedScore === "SCORE_3" ? "border-teal-600 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Target className="h-4 w-4" /> SCORE 3 - Emergency
+                <Target className="h-4 w-4" /> SCORE 3 - Success Probability
               </button>
             </nav>
           </div>

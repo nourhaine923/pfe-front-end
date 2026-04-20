@@ -73,7 +73,7 @@ export default function UserManagement() {
     try {
       const response = await api.patch(`/admin/users/${userId}/approve`)
       console.log("Approve response:", response.data)
-      showToast(`✅ Account ${email} approved successfully`, "success")
+      showToast(`Account ${email} approved successfully`, "success")
       await fetchUsers() // Refresh list
     } catch (error: any) {
       console.error("Approve error:", error)
@@ -100,7 +100,7 @@ export default function UserManagement() {
     try {
       const response = await api.patch(`/admin/users/${userId}/reject`)
       console.log("Reject response:", response.data)
-      showToast(`❌ Account ${email} rejected`, "warning")
+      showToast(`Account ${email} rejected`, "warning")
       await fetchUsers()
     } catch (error: any) {
       console.error("Reject error:", error)
@@ -112,7 +112,7 @@ export default function UserManagement() {
   }
 
   const handleDelete = async (userId: string, email: string) => {
-    if (!confirm(`⚠️ Are you sure you want to delete ${email}'s account? This action cannot be undone.`)) return
+    if (!confirm(`Are you sure you want to delete ${email}'s account? This action cannot be undone.`)) return
     
     if (!userId) {
       console.error("No userId provided!")

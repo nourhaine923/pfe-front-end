@@ -43,7 +43,7 @@ export default function LoginPage() {
   const showToast = (message: string, type: "success" | "error" | "warning" = "error") => {
     setToastType(type)
     setToast(message)
-    setTimeout(() => setToast(""), 4000) // Increased to 4 seconds for better readability
+    setTimeout(() => setToast(""), 3000) // Increased to 3 seconds for better readability
   }
 
   // Validate sign in inputs
@@ -77,8 +77,8 @@ export default function LoginPage() {
       showToast("Please enter a valid email address", "warning")
       return false
     }
-    if (password.length < 6) {
-      showToast("Password must be at least 6 characters", "warning")
+    if (password.length < 8) {
+      showToast("Password must be at least 8 characters", "warning")
       return false
     }
     return true
@@ -90,7 +90,7 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const user = await login(email, password)
-      showToast("✅ Login successful! Redirecting...", "success")
+      showToast("Login successful!", "success")
       
       setTimeout(() => {
         if (user.role === "ADMIN") {
@@ -105,34 +105,34 @@ export default function LoginPage() {
       // Handle specific error types from the updated context
       switch(errorMessage) {
         case "EMAIL_NOT_FOUND":
-          showToast("❌ Email not found. Please sign up first.", "error")
+          showToast(" Email not found. Please sign up first.", "error")
           // Switch to sign up mode after 2 seconds
           setTimeout(() => setIsActive(true), 2000)
           break
           
         case "INVALID_PASSWORD":
-          showToast("❌ Incorrect password. Please try again.", "error")
+          showToast("Incorrect password. Please try again.", "error")
           break
           
         case "ACCOUNT_PENDING":
           showToast(
-            "⏳ Your account is pending approval. An administrator needs to approve your account before you can log in. You will receive an email once approved.",
+            "Your account is pending approval. An administrator needs to approve your account before you can log in.",
             "warning"
           )
           break
           
         case "ACCOUNT_REJECTED":
           showToast(
-            "❌ Your account has been rejected. Please contact support for more information.",
+            "Your account has been rejected. Please contact support for more information.",
             "error"
           )
           break
           
         default:
           if (errorMessage.toLowerCase().includes("network") || errorMessage.toLowerCase().includes("connection")) {
-            showToast("🌐 Network error. Please check your connection.", "error")
+            showToast("Network error. Please check your connection.", "error")
           } else if (errorMessage.toLowerCase().includes("server")) {
-            showToast("⚠️ Server error. Please try again later.", "error")
+            showToast("Server error. Please try again later.", "error")
           } else {
             showToast(errorMessage || "Login failed. Please try again.", "error")
           }
@@ -155,7 +155,7 @@ export default function LoginPage() {
         setEmail("")
         setPassword("")
       } else {
-        showToast("✅ Account created successfully!", "success")
+        showToast("Account created successfully!", "success")
         setTimeout(() => {
           if (user.role === "ADMIN") {
             router.push("/dashboard")
@@ -171,7 +171,7 @@ export default function LoginPage() {
       switch(errorMessage) {
         case "EMAIL_ALREADY_EXISTS":
           showToast(
-            "⚠️ An account with this email already exists. Please sign in instead.",
+            "An account with this email already exists. Please sign in instead.",
             "warning"
           )
           // Clear form and switch to sign in mode
@@ -183,20 +183,20 @@ export default function LoginPage() {
           break
           
         case "INVALID_EMAIL_FORMAT":
-          showToast("❌ Invalid email format. Please enter a valid email address.", "warning")
+          showToast("Invalid email format. Please enter a valid email address.", "warning")
           break
           
         case "WEAK_PASSWORD":
-          showToast("🔒 Password is too weak. Please use at least 6 characters with letters and numbers.", "warning")
+          showToast("Password is too weak. Please use at least 8 characters with letters and numbers.", "warning")
           break
           
         default:
           if (errorMessage.toLowerCase().includes("email") && errorMessage.toLowerCase().includes("format")) {
-            showToast("❌ Email format is invalid", "warning")
+            showToast(" Email format is invalid", "warning")
           } else if (errorMessage.toLowerCase().includes("password") && errorMessage.toLowerCase().includes("weak")) {
-            showToast("🔒 Password is too weak. Use at least 6 characters.", "warning")
+            showToast("Password is too weak. Use at least 8 characters.", "warning")
           } else if (errorMessage.toLowerCase().includes("network") || errorMessage.toLowerCase().includes("connection")) {
-            showToast("🌐 Network error. Please check your connection.", "error")
+            showToast("Network error. Please check your connection.", "error")
           } else {
             showToast(errorMessage || "Signup failed. Please try again.", "error")
           }
@@ -281,7 +281,7 @@ export default function LoginPage() {
               
               <input 
                 type="password" 
-                placeholder="Enter Password (min. 6 characters)" 
+                placeholder="Enter Password (min. 8 characters)" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}

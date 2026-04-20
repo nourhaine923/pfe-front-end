@@ -46,7 +46,7 @@ const InputField = ({
         onChange={handleInputChange}
         onBlur={onBlur}
         inputMode={numeric ? "numeric" : "text"}
-        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all
+        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all
         ${error ? "border-red-500" : "border-gray-300"}`}
         {...props}
       />
@@ -78,7 +78,7 @@ const SelectField = ({
         name={name}
         value={value || ""}
         onChange={handleChange}
-        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white
+        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white
         ${error ? "border-red-500" : "border-gray-300"}`}
       >
         <option value="">Select {label}</option>
@@ -109,7 +109,7 @@ const CheckboxField = ({ label, name, checked, onChange }: any) => {
           onChange={handleChange}
           className="sr-only peer"
         />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
       </label>
     </div>
   )
@@ -117,7 +117,7 @@ const CheckboxField = ({ label, name, checked, onChange }: any) => {
 
 const SectionTitle = ({ title, icon: Icon }: { title: string; icon?: any }) => (
   <div className="flex items-center gap-2 mt-6 mb-4 pb-2 border-b border-gray-200">
-    {Icon && <Icon className="h-5 w-5 text-blue-600" />}
+    {Icon && <Icon className="h-5 w-5 text-teal-600" />}
     <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
   </div>
 )
@@ -291,7 +291,7 @@ export default function UpdateTransplantationModal({ isOpen, onClose, onUpdated,
         <div className="px-4 py-4">
           {/* Sticky header */}
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
-            <h2 className="text-2xl font-bold text-blue-900">Update Transplantation</h2>
+            <h2 className="text-2xl font-bold text-teal-900">Update Transplantation</h2>
             <p className="text-sm text-gray-500 mt-1">
               Editing transplantation {transplantation.transplantNumber || `#${transplantation._id?.slice(-6)}`}
             </p>
@@ -500,7 +500,7 @@ export default function UpdateTransplantationModal({ isOpen, onClose, onUpdated,
             <button
               onClick={handleUpdate}
               disabled={loading}
-              className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-teal-900 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>

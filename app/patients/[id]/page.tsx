@@ -424,13 +424,6 @@ export default function PatientDetailsPage() {
                           icon={Calendar}
                         />
                       )}
-                      {patient.clinicalData.blood_group && (
-                        <InfoRow 
-                          label="Clinical Blood Group" 
-                          value={patient.clinicalData.blood_group} 
-                          icon={Droplet}
-                        />
-                      )}
                       {patient.clinicalData.primary_nephropathy && (
                         <InfoRow 
                           label="Primary Nephropathy" 

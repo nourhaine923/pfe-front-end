@@ -538,7 +538,7 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="max-h-[85vh] overflow-y-auto">
+      <div className="max-h-[85vh] overflow-y-auto w-full md:w-[700px] lg:w-[900px]">
         <div className="px-6 py-6">
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
             <div className="flex items-center gap-3">

@@ -167,6 +167,31 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
   const [errors, setErrors] = useState<any>({})
   const [mrnValid, setMrnValid] = useState<boolean | null>(null)
 
+  // Helper function to validate birth date
+  const validateBirthDate = (dateString: string): string | null => {
+    if (!dateString) return null
+    
+    const birthDate = new Date(dateString)
+    const today = new Date()
+    
+    // Reset time part for accurate comparison
+    today.setHours(0, 0, 0, 0)
+    birthDate.setHours(0, 0, 0, 0)
+    
+    if (birthDate > today) {
+      return "Birth date cannot be in the future"
+    }
+    
+    // Check if date is too old (optional: max 120 years)
+    const maxAgeDate = new Date()
+    maxAgeDate.setFullYear(today.getFullYear() - 120)
+    if (birthDate < maxAgeDate) {
+      return "Birth date seems too old (max 120 years)"
+    }
+    
+    return null
+  }
+
   // Check if MRN exists via API
   const checkMRNExists = useCallback(async (mrn: string) => {
     if (!mrn || mrn === "") {
@@ -200,6 +225,15 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
       setTimeout(() => {
         checkMRNExists(value)
       }, 500)
+    }
+  }
+
+  const handleBirthDateChange = (value: string) => {
+    setForm(prev => ({ ...prev, birthDate: value }))
+    
+    // Clear previous birth date error
+    if (errors.birthDate) {
+      setErrors((prev: any) => ({ ...prev, birthDate: undefined }))
     }
   }
 
@@ -291,6 +325,12 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
         if (!form.birthDate) {
           newErrors.birthDate = "Birth date is required"
           errorMessages.push("Birth date is required")
+        } else {
+          const birthDateError = validateBirthDate(form.birthDate)
+          if (birthDateError) {
+            newErrors.birthDate = birthDateError
+            errorMessages.push(birthDateError)
+          }
         }
         // Morphology for recipients - height and weight
         if (!form.heightCm || form.heightCm === "") {
@@ -463,7 +503,7 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="max-h-[80vh] overflow-y-auto">
+      <div className="max-h-[80vh] overflow-y-auto w-full md:w-[700px] lg:w-[900px] ">
         <div className="px-4 py-4">
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
             <h2 className="text-2xl font-bold text-teal-900">Create New Patient</h2>
@@ -623,7 +663,7 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
                     type="date"
                     required
                     value={form.birthDate}
-                    onChange={(val: string) => setForm(prev => ({ ...prev, birthDate: val }))}
+                    onChange={handleBirthDateChange}
                     error={errors.birthDate}
                   />
                 </div>

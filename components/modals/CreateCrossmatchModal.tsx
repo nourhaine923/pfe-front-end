@@ -45,11 +45,43 @@ export default function CreateCrossmatchModal({
     { value: "Negative", label: "Negative", color: "text-green-600", icon: CheckCircle }
   ]
 
+  // Helper function to validate date (must be within last week or today)
+  const validateTestDate = (dateString: string): string | null => {
+    if (!dateString) return null
+    
+    const inputDate = new Date(dateString)
+    const today = new Date()
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(today.getDate() - 7)
+    
+    // Reset time part for accurate comparison
+    today.setHours(0, 0, 0, 0)
+    inputDate.setHours(0, 0, 0, 0)
+    oneWeekAgo.setHours(0, 0, 0, 0)
+    
+    if (inputDate > today) {
+      return "Test date cannot be in the future"
+    }
+    
+    if (inputDate < oneWeekAgo) {
+      return "Test date cannot be older than 1 week"
+    }
+    
+    return null
+  }
+
   const validateForm = () => {
     if (!form.testDate) {
       showToast?.("Please select a test date", "error")
       return false
     }
+    
+    const dateError = validateTestDate(form.testDate)
+    if (dateError) {
+      showToast?.(dateError, "error")
+      return false
+    }
+    
     return true
   }
 
@@ -90,6 +122,12 @@ export default function CreateCrossmatchModal({
     })
     onClose()
   }
+
+  // Get max date (today) and min date (7 days ago) for date input
+  const today = new Date().toISOString().split('T')[0]
+  const oneWeekAgo = new Date()
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  const minDate = oneWeekAgo.toISOString().split('T')[0]
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
@@ -140,45 +178,35 @@ export default function CreateCrossmatchModal({
                 <input
                   type="date"
                   value={form.testDate}
+                  max={today}
+                  min={minDate}
                   onChange={(e) => setForm(prev => ({ ...prev, testDate: e.target.value }))}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">Date must be within the last 7 days (including today)</p>
             </div>
 
-            {/* Method */}
+            {/* Test Method - Dropdown */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Test Method
+                Test Method <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <select
+                value={form.methode}
+                onChange={(e) => setForm(prev => ({ ...prev, methode: e.target.value }))}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
                 {methods.map(m => (
-                  <label
-                    key={m.value}
-                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                      form.methode === m.value
-                        ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
-                        : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="methode"
-                      value={m.value}
-                      checked={form.methode === m.value}
-                      onChange={(e) => setForm(prev => ({ ...prev, methode: e.target.value }))}
-                      className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">{m.label}</span>
-                  </label>
+                  <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Result */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Result
+                Result <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {results.map(r => {

@@ -19,6 +19,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
       width: "100vw",
       height: "100vh",
       background: "rgba(0,0,0,0.4)",
+      backdropFilter: "blur(4px)",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",

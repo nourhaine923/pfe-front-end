@@ -24,7 +24,7 @@ const InputField = ({ label, name, type = "text", required = false, value, onCha
       name={name}
       value={value || ""}
       onChange={onChange}
-      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent
       ${error ? "border-red-500" : "border-gray-300"}`}
     />
     {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
@@ -40,7 +40,7 @@ const SelectField = ({ label, name, options, value, onChange, error, required = 
       name={name}
       value={value || ""}
       onChange={onChange}
-      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white
+      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white
       ${error ? "border-red-500" : "border-gray-300"}`}
     >
       <option value="">Select {label}</option>
@@ -60,7 +60,7 @@ const TextAreaField = ({ label, name, value, onChange }: any) => (
       value={value || ""}
       onChange={onChange}
       rows={3}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
     />
   </div>
 )
@@ -150,11 +150,11 @@ export default function UpdateFollowUpModal({ isOpen, onClose, followUp, onUpdat
           {/* Header */}
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-100 rounded-full p-2">
-                <Activity className="h-6 w-6 text-blue-600" />
+              <div className="bg-teal-100 rounded-full p-2">
+                <Activity className="h-6 w-6 text-teal-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-blue-900">Update Follow-up</h2>
+                <h2 className="text-2xl font-bold text-teal-900">Update Follow-up</h2>
                 <p className="text-sm text-gray-500 mt-1">
                   Editing visit from {new Date(followUp.visitDate).toLocaleDateString()}
                 </p>
@@ -237,7 +237,7 @@ export default function UpdateFollowUpModal({ isOpen, onClose, followUp, onUpdat
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center gap-2"
+              className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-400 flex items-center gap-2"
             >
               {loading ? (
                 <>

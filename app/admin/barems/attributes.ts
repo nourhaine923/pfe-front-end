@@ -90,6 +90,74 @@ export const SCORE_2_ATTRIBUTES = [
   { key: "death_with_graft", label: "Death with Graft", type: "boolean", description: "Patient died with functioning graft", guidance: "True if patient died with functioning graft" },
   { key: "lost_to_followup", label: "Lost to Follow-up", type: "boolean", description: "Patient lost to follow-up", guidance: "True if patient lost to follow-up" },
   { key: "delayed_graft_function", label: "Delayed Graft Function", type: "boolean", description: "Patient experienced DGF", guidance: "True if patient had delayed graft function" },
+     // Follow-up Summary
+  { key: "followup_count", label: "Follow-up Count", type: "numeric", unit: "count", description: "Total number of follow-ups", example: "5", validRange: "0-100", guidance: "Total number of follow-up visits" },
+  { key: "adverse_event_rate", label: "Adverse Event Rate", type: "numeric", unit: "per follow-up", description: "Average adverse events per follow-up", example: "0.5", validRange: "0-10", guidance: "Adverse events divided by number of follow-ups" },
+  
+  // Biological Trends
+  { key: "mean_creatinine", label: "Mean Creatinine", type: "numeric", unit: "mg/dL", description: "Average creatinine over time", example: "1.4", validRange: "0.3-10.0", guidance: "Average of all creatinine measurements" },
+  { key: "max_creatinine", label: "Max Creatinine", type: "numeric", unit: "mg/dL", description: "Highest creatinine recorded", example: "2.5", validRange: "0.3-15.0", guidance: "Highest creatinine value ever recorded" },
+  { key: "min_gfr", label: "Min eGFR", type: "numeric", unit: "mL/min", description: "Lowest eGFR recorded", example: "35", validRange: "0-150", guidance: "Lowest eGFR value ever recorded" },
+  { key: "creatinine_trend", label: "Creatinine Trend", type: "categorical", options: ["improving", "stable", "worsening"], description: "Trend in creatinine levels", guidance: "Select the trend direction" },
+  
+  // Graft Status
+  { key: "graft_loss", label: "Graft Loss", type: "boolean", description: "Patient has lost the graft", guidance: "True if graft failed, False otherwise" },
+  { key: "patient_survival", label: "Patient Survival", type: "boolean", description: "Patient is alive", guidance: "True if patient is alive, False if deceased" },
+  
+  // Vital Signs - Numeric
+  { key: "urine_output", label: "Urine Output", type: "numeric", unit: "mL/kg/hr", description: "Hourly urine output", example: "1.2", validRange: "0-10", guidance: "Enter urine output in mL per kg per hour (normal: >0.5)" },
+  { key: "temperature", label: "Temperature", type: "numeric", unit: "°C", description: "Body temperature", example: "37.2", validRange: "35-42", guidance: "Enter body temperature in Celsius (normal: 36.5-37.5)" },
+  { key: "blood_pressure", label: "Blood Pressure", type: "numeric", unit: "mmHg", description: "Systolic blood pressure", example: "120", validRange: "50-250", guidance: "Enter systolic blood pressure in mmHg" },
+  { key: "heart_rate", label: "Heart Rate", type: "numeric", unit: "bpm", description: "Heart rate", example: "75", validRange: "40-200", guidance: "Enter heart rate in beats per minute (normal: 60-100)" },
+  { key: "oxygen_saturation", label: "Oxygen Saturation", type: "numeric", unit: "%", description: "SpO2 level", example: "97", validRange: "0-100", guidance: "Enter oxygen saturation percentage (normal: >95)" },
+  
+  // Vital Signs - Categorical
+  { key: "mental_status", label: "Mental Status", type: "categorical", options: ["Alert", "Confused", "Lethargic", "Unresponsive"], description: "Patient's mental state", guidance: "Select the patient's current mental status" },
+  { key: "graft_ultrasound", label: "Graft Ultrasound", type: "categorical", options: ["Normal", "Increased RI", "Hydronephrosis", "No flow"], description: "Ultrasound findings", guidance: "Select the ultrasound finding" },
+ // Demographics
+  { key: "recipient_age", label: "Recipient Age", type: "numeric", unit: "years", description: "Age of the recipient at transplant", example: "45", validRange: "0-100", guidance: "Enter the recipient's age in years" },
+  { key: "donor_age", label: "Donor Age", type: "numeric", unit: "years", description: "Age of the donor at donation", example: "35", validRange: "0-80", guidance: "Enter the donor's age in years" },
+  { key: "sex", label: "Sex", type: "categorical", options: ["M", "F"], description: "Patient sex", guidance: "Enter 'M' for Male, 'F' for Female" },
+  { key: "foreign_patient", label: "Foreign Patient", type: "boolean", description: "Patient is from abroad", guidance: "True if patient is foreign, False otherwise" },
+  
+  // Morphology
+  { key: "height_cm", label: "Height", type: "numeric", unit: "cm", description: "Patient height", example: "170", validRange: "50-250", guidance: "Enter height in centimeters" },
+  { key: "weight_kg", label: "Weight", type: "numeric", unit: "kg", description: "Patient weight", example: "70", validRange: "10-300", guidance: "Enter weight in kilograms" },
+  { key: "bmi", label: "BMI", type: "numeric", unit: "kg/m²", description: "Body Mass Index", example: "24.2", guidance: "Automatically calculated from height/weight" },
+  
+  // Clinical History
+  { key: "nephropathy", label: "Primary Nephropathy", type: "categorical", description: "Primary kidney disease", example: "Diabetic, Glomerular, Vascular, NTIC, Hereditary, NI", guidance: "Enter the primary nephropathy type" },
+  { key: "dialysis_type", label: "Dialysis Type", type: "categorical", options: ["Hemodialysis", "Peritoneal Dialysis", "None"], description: "Type of dialysis", guidance: "Select the dialysis type" },
+  { key: "dialysis_duration", label: "Dialysis Duration", type: "numeric", unit: "months", description: "Duration on dialysis", example: "24", validRange: "0-240", guidance: "Enter number of months on dialysis" },
+  { key: "comorbidities", label: "Comorbidities", type: "categorical", description: "Other medical conditions", example: "COPD, CHF, Liver disease", guidance: "Enter comorbidities as text" },
+  { key: "transplant_rank", label: "Transplant Rank", type: "numeric", unit: "count", description: "Number of previous transplants", example: "1", guidance: "Enter 1 for first transplant, 2 for second, etc." },
+  
+  // Pre-transplant Assessment - Boolean
+  { key: "diabetes", label: "Diabetes", type: "boolean", description: "Patient has diabetes mellitus", guidance: "True if patient has diabetes, False otherwise" },
+  { key: "hypertension", label: "Hypertension", type: "boolean", description: "Patient has hypertension", guidance: "True if patient has hypertension, False otherwise" },
+  { key: "acc", label: "ACC", type: "boolean", description: "ACC status", guidance: "True if ACC present, False otherwise" },
+  { key: "hbsag", label: "HBsAg", type: "boolean", description: "Hepatitis B surface antigen status", guidance: "True if positive, False if negative" },
+  { key: "anti_hcv", label: "Anti-HCV", type: "boolean", description: "Hepatitis C antibody status", guidance: "True if positive, False if negative" },
+  { key: "transfusion_history", label: "Transfusion History", type: "boolean", description: "Previous blood transfusions", guidance: "True if patient had transfusions, False otherwise" },
+  
+  // Pre-transplant Assessment - Categorical/Numeric
+  { key: "eer_modality", label: "EER Modality", type: "categorical", options: ["Preemptive", "DP", "HD", "DP_HD"], description: "Dialysis modality", guidance: "Select: Preemptive (no dialysis), DP (Peritoneal), HD (Hemodialysis), DP_HD (both)" },
+  { key: "previous_transplants", label: "Previous Transplants", type: "numeric", unit: "count", description: "Number of previous transplantations", example: "0, 1, 2", guidance: "Enter 0 for first transplant, 1 for second, etc." },
+  { key: "etiology_irc", label: "Etiology IRC", type: "categorical", description: "Cause of kidney failure", example: "Hypertension, Diabetes, Glomerulonephritis", guidance: "Enter the cause of kidney failure" },
+  { key: "transplant_delay", label: "Transplant Delay", type: "numeric", unit: "months", description: "Time on waiting list", example: "18", validRange: "0-120", guidance: "Enter months on waiting list" },
+  { key: "serum_creatinine", label: "Serum Creatinine", type: "numeric", unit: "mg/dL", description: "Pre-transplant creatinine level", example: "1.2", validRange: "0.3-15.0", guidance: "Enter creatinine value in mg/dL" },
+  
+  // Transplant Conditions
+  { key: "donor_type", label: "Donor Type", type: "categorical", options: ["Living Related", "Living Unrelated", "Deceased Donor", "Cadaveric"], description: "Type of donor", guidance: "Select the donor type" },
+  { key: "cold_ischemia", label: "Cold Ischemia Time", type: "numeric", unit: "hours", description: "Cold ischemia duration", example: "8.5", validRange: "0-48", guidance: "Enter cold ischemia time in hours" },
+  { key: "warm_ischemia", label: "Warm Ischemia Time", type: "numeric", unit: "minutes", description: "Warm ischemia duration", example: "35", validRange: "0-120", guidance: "Enter warm ischemia time in minutes" },
+  { key: "transplant_location", label: "Transplant Location", type: "categorical", description: "Hospital where transplant was performed", example: "HCN, RABTA, SOUSSE", guidance: "Enter the hospital location" },
+  { key: "service_origin", label: "Service Origin", type: "categorical", description: "Referring service", example: "Nephrology_HCN, Pediatrics_HCN", guidance: "Enter the referring service" },
+  
+  // Immunology - Computed values
+  { key: "blood_compatibility", label: "Blood Compatibility", type: "computed", description: "Donor-recipient blood group compatibility", possibleValues: ["Identical", "Compatible", "Incompatible"], guidance: "Automatically computed from donor and recipient blood groups", expectedFormat: "One of: 'Identical', 'Compatible', 'Incompatible'" },
+  { key: "hla_matching", label: "HLA Matching", type: "computed", description: "Donor-recipient HLA match level", possibleValues: ["0/6 mismatches", "1-2/6 mismatches", "3-4/6 mismatches", "5-6/6 mismatches"], guidance: "Automatically calculated from HLA typing data", expectedFormat: "Number of mismatches (0, 2, 4, 6)" },
+
 ]
 
 export const SCORE_3_ATTRIBUTES = [
