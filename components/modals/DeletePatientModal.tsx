@@ -70,12 +70,7 @@ export default function DeletePatientModal({
         <button
           onClick={handleDelete}
           disabled={!patientId || loading}
-          style={{
-            marginRight: 10,
-            background: "red",
-            color: "white",
-            padding: "8px 12px"
-          }}
+          className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-400 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {loading ? "Deleting..." : "Delete"}
         </button>
@@ -83,9 +78,7 @@ export default function DeletePatientModal({
         <button
           onClick={onClose}
           disabled={loading}
-          style={{
-            padding: "8px 12px"
-          }}
+          className="px-4 py-2 text-gray-700 bg-gray-300 rounded-lg hover:bg-gray-400 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           Cancel
         </button>

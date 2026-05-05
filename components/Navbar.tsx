@@ -33,13 +33,13 @@ export default function Navbar() {
   // Navigation items based on role
   const navigationItems = []
 
-  // Dashboard - visible to both Admin and Nephrologist
-  if (user?.role === "ADMIN" || user?.role === "NEPHROLOGIST") {
+  // Dashboard - visible to Nephrologist only
+  if (user?.role === "NEPHROLOGIST") {
     navigationItems.push({
       name: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard,
-      roles: ["ADMIN", "NEPHROLOGIST"]
+      roles: ["NEPHROLOGIST"]
     })
   }
 

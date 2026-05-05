@@ -43,7 +43,7 @@ export default function LoginPage() {
   const showToast = (message: string, type: "success" | "error" | "warning" = "error") => {
     setToastType(type)
     setToast(message)
-    setTimeout(() => setToast(""), 3000) // Increased to 3 seconds for better readability
+    setTimeout(() => setToast(""), 2000) // Increased to 2 seconds for better readability
   }
 
   // Validate sign in inputs
@@ -90,11 +90,11 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const user = await login(email, password)
-      showToast("Login successful!", "success")
+      showToast("Login successful", "success")
       
       setTimeout(() => {
         if (user.role === "ADMIN") {
-          router.push("/dashboard")
+          router.push("/admin/users")
         } else {
           router.push("/patients")
         }
@@ -158,7 +158,7 @@ export default function LoginPage() {
         showToast("Account created successfully!", "success")
         setTimeout(() => {
           if (user.role === "ADMIN") {
-            router.push("/dashboard")
+            router.push("/admin/users")
           } else {
             router.push("/patients")
           }
@@ -288,17 +288,12 @@ export default function LoginPage() {
                 className="w-full bg-gray-100 border-none px-5 py-3 text-sm rounded-xl outline-none focus:ring-2 focus:ring-[#235347] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div><br/>
-      
+          
+            {/* Show role as read-only text */}
             <div className="w-full max-w-[280px] space-y-4 mt-4">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                disabled={isLoading}
-                className="w-full bg-gray-100 border-none px-5 py-3 text-sm rounded-xl outline-none focus:ring-2 focus:ring-[#235347] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="NEPHROLOGIST">Nephrologist</option>
-                <option value="ADMIN">Admin</option>
-              </select>
+              <div className="w-full bg-gray-100 px-5 py-3 text-sm rounded-xl text-gray-600">
+                Role: <span className="font-semibold text-[#235347]">Nephrologist</span>
+              </div>
             </div><br/>
             
             <button 
@@ -355,10 +350,6 @@ export default function LoginPage() {
                 className="w-full bg-gray-100 border-none px-5 py-3 text-sm rounded-xl outline-none focus:ring-2 focus:ring-[#235347] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div><br/>
-            
-            <a href="#" className="text-gray-500 text-xs mt-4 hover:text-[#235347] transition-colors">
-              Forgot Password?
-            </a><br/>
             
             <button 
               type="submit"

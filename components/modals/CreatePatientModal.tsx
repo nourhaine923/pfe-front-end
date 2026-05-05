@@ -566,7 +566,7 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
                     error={errors.lastName}
                   />
                   <SelectField
-                    label="Sex"
+                    label="Gender"
                     name="sex"
                     options={["Male", "Female"]}
                     required

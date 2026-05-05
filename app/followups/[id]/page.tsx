@@ -169,7 +169,7 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
               <TrendingUp className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">Post-Transplant Risk Score</p>
+              <p className="text-sm font-medium text-gray-700">Follow-up Risk Score</p>
               <p className="text-xs text-gray-400">Loading...</p>
             </div>
           </div>
@@ -189,7 +189,7 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h3 className="text-white font-semibold text-sm">Post-Transplant Risk Score</h3>
+                <h3 className="text-white font-semibold text-sm">Follow-up Risk Score</h3>
                 <p className="text-purple-100 text-xs">SCORE 2 - Follow-up Assessment</p>
               </div>
             </div>
@@ -365,7 +365,7 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
               <TrendingUp className="h-6 w-6 text-purple-400" />
             </div>
             <p className="text-sm text-gray-500 mb-2">No risk score calculated yet</p>
-            <p className="text-xs text-gray-400">Click "Calculate Score" to assess post-transplant risk</p>
+            <p className="text-xs text-gray-400">Click "Calculate Score" to assess Follow-up Risk Score</p>
           </div>
         )}
       </div>
@@ -579,9 +579,6 @@ export default function FollowUpDetailsPage() {
                 size="md"
                 showToast={showToast}
               />
-              <button onClick={() => setUpdateOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-green-700 bg-green-50 rounded-lg hover:bg-green-100">
-                <Edit2 className="h-4 w-4" /> Edit
-              </button>
               <button onClick={() => setDeleteOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 text-red-700 bg-red-50 rounded-lg hover:bg-red-100">
                 <Trash2 className="h-4 w-4" /> Delete
               </button>

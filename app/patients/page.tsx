@@ -137,7 +137,7 @@ export default function PatientsPage() {
 
   const showToast = (message: string, type: "success" | "error" | "warning" = "success") => {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), 1000)
   }
 
   const getBloodGroupColor = (bloodGroup: string) => {

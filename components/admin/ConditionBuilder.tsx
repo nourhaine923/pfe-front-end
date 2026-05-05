@@ -39,6 +39,7 @@ export default function ConditionBuilder({
   }
 
   const handleImpactChange = (val: number) => {
+    // FIXED: Allow 0 to be set properly
     onUpdate({ ...condition, impact: val })
   }
 
@@ -119,8 +120,11 @@ export default function ConditionBuilder({
       <input
         type="number"
         step="any"
-        value={condition.value || ""}
-        onChange={(e) => handleValueChange(parseFloat(e.target.value) || 0)}
+        value={condition.value !== undefined && condition.value !== null ? condition.value : ""}
+        onChange={(e) => {
+          const value = e.target.value === '' ? 0 : parseFloat(e.target.value)
+          handleValueChange(value)
+        }}
         placeholder={attributeInfo?.example ? `e.g., ${attributeInfo.example}` : "Enter value"}
         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
       />
@@ -141,13 +145,22 @@ export default function ConditionBuilder({
         </select>
       )}
       {renderValueInput()}
+      
+      {/* FIXED: Impact input - properly handles 0 */}
       <input
         type="number"
         value={condition.impact}
-        onChange={(e) => handleImpactChange(parseInt(e.target.value) || 0)}
+        onChange={(e) => {
+          // Parse the value, allowing 0 to be set
+          const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10)
+          // Use handleImpactChange directly to ensure 0 is preserved
+          handleImpactChange(value)
+        }}
         placeholder="Points"
         className="w-24 px-3 py-2 border border-gray-300 rounded-lg"
+        step="1"
       />
+      
       <button
         onClick={onRemove}
         className="p-2 text-red-500 hover:bg-red-50 rounded-lg"

@@ -80,67 +80,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Login
-  const login = async (email: string, password: string) => {
-    try {
-      const { data } = await api.post("/auth/login", { email, password })
-      const token = data.access_token
+const login = async (email: string, password: string) => {
+  try {
+    const { data } = await api.post("/auth/login", { email, password })
+    const token = data.access_token
 
-      Cookies.set("token", token, { expires: 1 })
-      api.defaults.headers.Authorization = `Bearer ${token}`
+    Cookies.set("token", token, { expires: 1 })
+    api.defaults.headers.Authorization = `Bearer ${token}`
 
-      const decoded = decodeToken(token)
-      if (!decoded) {
-        throw new Error("Failed to decode token")
-      }
-
-      // Check if account is approved
-      if (decoded.status === 'PENDING') {
-        throw new Error("ACCOUNT_PENDING")
-      }
-      
-      if (decoded.status === 'REJECTED') {
-        throw new Error("ACCOUNT_REJECTED")
-      }
-
-      const userData = {
-        email: decoded.email,
-        role: decoded.role,
-        isApproved: decoded.isApproved,
-        status: decoded.status
-      }
-
-      setUser(userData)
-      return userData
-    } catch (error: any) {
-      console.error("Login error:", error)
-      
-      // Handle backend error responses
-      if (error.response?.status === 401) {
-        const detail = error.response?.data?.detail
-        if (detail === "Email not found") {
-          throw new Error("EMAIL_NOT_FOUND")
-        } else if (detail === "Invalid password") {
-          throw new Error("INVALID_PASSWORD")
-        } else if (detail === "ACCOUNT_PENDING") {
-          throw new Error("ACCOUNT_PENDING")
-        } else if (detail === "ACCOUNT_REJECTED") {
-          throw new Error("ACCOUNT_REJECTED")
-        } else {
-          throw new Error("Invalid email or password")
-        }
-      }
-      
-      // Handle specific error types from the decoded token check
-      if (error.message === "ACCOUNT_PENDING") {
-        throw new Error("ACCOUNT_PENDING")
-      }
-      if (error.message === "ACCOUNT_REJECTED") {
-        throw new Error("ACCOUNT_REJECTED")
-      }
-      
-      throw error
+    const decoded = decodeToken(token)
+    if (!decoded) {
+      throw new Error("Failed to decode token")
     }
+
+    // Check if account is approved
+    if (decoded.status === 'PENDING') {
+      // Clear any tokens that might have been set
+      Cookies.remove("token")
+      delete api.defaults.headers.Authorization
+      throw new Error("ACCOUNT_PENDING")
+    }
+    
+    if (decoded.status === 'REJECTED') {
+      // Clear any tokens that might have been set
+      Cookies.remove("token")
+      delete api.defaults.headers.Authorization
+      throw new Error("ACCOUNT_REJECTED")
+    }
+
+    const userData = {
+      email: decoded.email,
+      role: decoded.role,
+      isApproved: decoded.isApproved,
+      status: decoded.status
+    }
+
+    setUser(userData)
+    return userData
+  } catch (error: any) {
+    console.error("Login error:", error)
+    
+    // Handle backend error responses 403
+    if (error.response?.status === 403) {
+      const detail = error.response?.data?.detail
+      if (detail === "ACCOUNT_PENDING" || detail?.toLowerCase().includes("pending")) {
+        throw new Error("ACCOUNT_PENDING")
+      } else if (detail === "ACCOUNT_REJECTED" || detail?.toLowerCase().includes("rejected")) {
+        throw new Error("ACCOUNT_REJECTED")
+      }
+    }
+    
+    // Handle 401 errors
+    if (error.response?.status === 401) {
+      const detail = error.response?.data?.detail
+      if (detail === "Email not found") {
+        throw new Error("EMAIL_NOT_FOUND")
+      } else if (detail === "Invalid password") {
+        throw new Error("INVALID_PASSWORD")
+      } else {
+        throw new Error("Invalid email or password")
+      }
+    }
+    
+    // Handle 404 errors
+    if (error.response?.status === 404) {
+      throw new Error("EMAIL_NOT_FOUND")
+    }
+    
+    // Handle specific error types from the decoded token check
+    if (error.message === "ACCOUNT_PENDING") {
+      throw new Error("ACCOUNT_PENDING")
+    }
+    if (error.message === "ACCOUNT_REJECTED") {
+      throw new Error("ACCOUNT_REJECTED")
+    }
+    
+    throw error
   }
+}
 
   // Register
   const register = async (

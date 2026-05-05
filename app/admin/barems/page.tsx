@@ -1,12 +1,15 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { useAuth } from "@/features/auth/context"
 import { useRouter } from "next/navigation"
-import { Plus,Edit2,Trash2, Loader2,ChevronDown,ChevronUp,Settings,Zap,Target,Activity,Search,AlertCircle} from "lucide-react"
+import { Plus, Edit2, Trash2, Loader2, ChevronDown, ChevronUp, Settings, Zap, Target, Activity, Search } from "lucide-react"
 import api from "@/services/api"
 import Toast from "@/components/ui/Toast"
 import BaremModal from "@/components/admin/BaremModal"
+import DeleteRuleModal from "@/components/modals/DeleteRuleModal"
 import { getAttributesByScore } from "./attributes"
+
 // Types
 interface Barem {
   _id: string
@@ -14,6 +17,7 @@ interface Barem {
   key: string
   values: any[]
 }
+
 export default function BaremManagementPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -26,6 +30,10 @@ export default function BaremManagementPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [toast, setToast] = useState<{ message: string; type?: string } | null>(null)
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
+  
+  // Delete modal states
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deletingBarem, setDeletingBarem] = useState<{ id: string; key: string } | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -49,21 +57,9 @@ export default function BaremManagementPage() {
     }
   }
 
-  const handleDelete = async (id: string, key: string) => {
-    if (!confirm(`Are you sure you want to delete the rule for "${key}"?`)) return
-    try {
-      await api.delete(`/barems/${id}`)
-      showToast(`Rule "${key}" deleted successfully`, "success")
-      fetchBarems()
-    } catch (err) {
-      console.error("Error deleting barem:", err)
-      showToast("Failed to delete rule", "error")
-    }
-  }
-
   const showToast = (message: string, type: "success" | "error" | "warning" = "success") => {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), 2000)
   }
 
   const toggleExpand = (key: string) => {
@@ -112,14 +108,14 @@ export default function BaremManagementPage() {
           </div>
         </div>
 
-        {/* Score Type Tabs  */}
+        {/* Score Type Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
           <div className="border-b border-gray-200">
             <nav className="flex gap-1 px-4">
               <button
                 onClick={() => setSelectedScore("SCORE_1")}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  selectedScore === "SCORE_1" ? "border-orange-600 text-orange-600" : "border-transparent text-gray-500 hover:text-gray-700"
+                  selectedScore === "SCORE_1" ? "border-red-600 text-red-600" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 <Zap className="h-4 w-4" /> SCORE 1 - Transplant Urgency
@@ -180,8 +176,8 @@ export default function BaremManagementPage() {
                     onClick={() => toggleExpand(barem.key)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`rounded-lg p-2 ${selectedScore === "SCORE_1" ? "bg-orange-100" : selectedScore === "SCORE_2" ? "bg-purple-100" : "bg-teal-100"}`}>
-                        <Settings className={`h-5 w-5 ${selectedScore === "SCORE_1" ? "text-orange-600" : selectedScore === "SCORE_2" ? "text-purple-600" : "text-teal-600"}`} />
+                      <div className={`rounded-lg p-2 ${selectedScore === "SCORE_1" ? "bg-red-100" : selectedScore === "SCORE_2" ? "bg-purple-100" : "bg-teal-100"}`}>
+                        <Settings className={`h-5 w-5 ${selectedScore === "SCORE_1" ? "text-red-600" : selectedScore === "SCORE_2" ? "text-purple-600" : "text-teal-600"}`} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{barem.key.replace(/_/g, " ").toUpperCase()}</h3>
@@ -190,10 +186,23 @@ export default function BaremManagementPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{barem.values.length} rule(s)</span>
-                      <button onClick={(e) => { e.stopPropagation(); setEditingBarem(barem); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg">
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setEditingBarem(barem); 
+                        }} 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                      >
                         <Edit2 className="h-4 w-4" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(barem._id, barem.key); }} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg">
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setDeletingBarem({ id: barem._id, key: barem.key });
+                          setDeleteOpen(true);
+                        }} 
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                       {isExpanded ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
@@ -237,17 +246,37 @@ export default function BaremManagementPage() {
           )}
         </div>
 
-        {/* Modals */}
+        {/* Create/Edit Modal */}
         {(showCreateModal || editingBarem) && (
           <BaremModal
             barem={editingBarem}
             score={selectedScore}
             attributes={getAttributesByScore(selectedScore)}
             onClose={() => { setShowCreateModal(false); setEditingBarem(null); }}
-            onSave={() => { fetchBarems(); showToast(editingBarem ? "Rule updated" : "Rule created", "success"); setShowCreateModal(false); setEditingBarem(null); }}
+            onSave={() => { 
+              fetchBarems(); 
+              showToast(editingBarem ? "Rule updated" : "Rule created", "success"); 
+              setShowCreateModal(false); 
+              setEditingBarem(null); 
+            }}
             showToast={showToast}
           />
         )}
+
+        {/* Delete Modal */}
+        <DeleteRuleModal
+          isOpen={deleteOpen}
+          onClose={() => {
+            setDeleteOpen(false)
+            setDeletingBarem(null)
+          }}
+          baremId={deletingBarem?.id || null}
+          onDeleted={() => {
+            fetchBarems()
+            showToast(`Rule "${deletingBarem?.key}" deleted successfully`, "success")
+          }}
+          showToast={showToast}
+        />
 
         {toast && <Toast message={toast.message} type={toast.type as any} onClose={() => setToast(null)} />}
       </div>

@@ -91,7 +91,7 @@ export default function BaremModal({ barem, score, attributes, onClose, onSave, 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white px-6 py-4 border-b">
           <div className="flex items-center justify-between">

@@ -1,4 +1,5 @@
 // components/admin/RuleBuilder.tsx
+//the page for creation of rules 
 "use client"
 
 import { Plus, Trash2 } from "lucide-react"

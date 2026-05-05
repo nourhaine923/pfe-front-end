@@ -323,7 +323,7 @@ export default function PatientDetailsPage() {
                       icon={User}
                     />
                     <InfoRow 
-                      label="Sex" 
+                      label="Gender" 
                       value={patient.sex} 
                       icon={UserCircle}
                     />

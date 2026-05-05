@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import MLScoreCard from "@/components/ml/MLScoreCard"
 import { 
   Calendar, 
   User, 
@@ -243,7 +244,7 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
                 <div className="bg-white/20 rounded-xl p-2">
                   <Zap className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-white font-semibold text-lg">Transplant Urgency</h3>
+                <h3 className="text-white font-semibold text-lg">Transplant Urgency Score</h3>
               </div>
               <button
                 onClick={() => calculateScore("SCORE_1")}
@@ -310,7 +311,7 @@ function ScoreCards({ transplantationId }: { transplantationId: string }) {
                 <div className="bg-white/20 rounded-xl p-2">
                   <Target className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-white font-semibold text-lg">Success Probability</h3>
+                <h3 className="text-white font-semibold text-lg">Success Probability Score</h3>
               </div>
               <button
                 onClick={() => calculateScore("SCORE_3")}
@@ -679,6 +680,22 @@ export default function TransplantationDetailsPage() {
 
         {/* Score Cards */}
         <ScoreCards transplantationId={transplantation._id} />
+        {/* ML SCORE 1 Card - Add this */}
+<div className="mb-8">
+  <MLScoreCard 
+            patientData={{
+              age: transplantation.recipient?.birthDate ? 
+                new Date().getFullYear() - new Date(transplantation.recipient.birthDate).getFullYear() : 55,
+              htn: transplantation.preTransplantAssessment?.hypertension || false,
+              dm: transplantation.preTransplantAssessment?.diabetes || false,
+              cad: transplantation.preTransplantAssessment?.acc || false,
+              sc: transplantation.preTransplantAssessment?.serumCreatinine || 1.2
+            }}
+            onPredictionComplete={(prediction) => {
+              console.log("ML Prediction:", prediction)
+            }}
+          />
+        </div>
 
         {/* Main Content */}
         <div id="transplantation-print-content">
