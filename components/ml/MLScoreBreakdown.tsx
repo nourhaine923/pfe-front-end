@@ -133,7 +133,7 @@ export default function MLScoreBreakdown({ patientData, onClose }: MLScoreBreakd
           
           {/* Prediction Result */}
           <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-6 border border-purple-100">
-            <h3 className="font-semibold text-gray-800 mb-4">🧠 AI Prediction Result</h3>
+            <h3 className="font-semibold text-gray-800 mb-4"> AI Prediction Result</h3>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-5xl font-bold text-purple-700">{predictionDetails?.score}</p>
@@ -231,31 +231,6 @@ export default function MLScoreBreakdown({ patientData, onClose }: MLScoreBreakd
               <div className="bg-white rounded-lg p-2">
                 <p className="text-xs text-gray-500 uppercase">Nephropathy</p>
                 <p className="text-sm font-semibold">{patientData.nephropathy}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Urgency Probability Breakdown */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <h3 className="font-semibold text-gray-800 mb-3">🎯 Urgency Probability Distribution</h3>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-red-600">High Urgency Probability</span>
-                  <span className="font-mono">{(predictionDetails?.probability_ckd * 100).toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div className="bg-red-500 h-3 rounded-full transition-all" style={{ width: `${(predictionDetails?.probability_ckd || 0) * 100}%` }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-green-600">Low Urgency Probability</span>
-                  <span className="font-mono">{(predictionDetails?.probability_no_ckd * 100).toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${(predictionDetails?.probability_no_ckd || 0) * 100}%` }} />
-                </div>
               </div>
             </div>
           </div>

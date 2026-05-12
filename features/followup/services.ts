@@ -36,33 +36,53 @@ export const deleteFollowUp = async (id: string) => {
   return res.data
 }
 
-// Get transplantations that have follow-ups
+// Get transplantations that have follow-ups (with cache busting)
 export const getTransplantationsWithFollowups = async (params?: any) => {
   try {
-    // Get all transplantations - remove limit parameter that might cause 422
+    // Add cache-busting timestamp to prevent caching
+    const cacheBuster = { _t: Date.now() }
+    
+    // Get all transplantations
     const txRes = await api.get("/transplantations", { 
       params: { 
         page: 1, 
-        limit: 100 
+        limit: 100,
+        ...cacheBuster
       } 
     })
     const allTransplantations = txRes.data?.data || txRes.data || []
     
-    // Get all follow-ups
+    // Get all follow-ups with cache-busting
     const followUpRes = await api.get("/followups", { 
       params: { 
         page: 1, 
-        limit: 100 
+        limit: 100,
+        ...cacheBuster
       } 
     })
     const followUps = followUpRes.data?.data || followUpRes.data || []
     
-    // Find which transplantations have follow-ups
-    const txWithFollowUpsIds = new Set(followUps.map((f: any) => f.transplantation_id))
+    // Create maps for efficient lookup
+    const followUpCountMap = new Map()
+    const latestFollowUpMap = new Map()
+    
+    // Process follow-ups to build counts and track latest
+    followUps.forEach((followUp: any) => {
+      const txId = followUp.transplantation_id
+      
+      // Count follow-ups per transplantation
+      followUpCountMap.set(txId, (followUpCountMap.get(txId) || 0) + 1)
+      
+      // Track the latest follow-up (by visit date)
+      const existingLatest = latestFollowUpMap.get(txId)
+      if (!existingLatest || new Date(followUp.visitDate) > new Date(existingLatest.visitDate)) {
+        latestFollowUpMap.set(txId, followUp)
+      }
+    })
     
     // Filter transplantations that have follow-ups
     let filtered = (Array.isArray(allTransplantations) ? allTransplantations : [])
-      .filter((tx: any) => txWithFollowUpsIds.has(tx._id))
+      .filter((tx: any) => followUpCountMap.has(tx._id))
     
     // Apply search if provided
     const search = params?.search
@@ -82,17 +102,14 @@ export const getTransplantationsWithFollowups = async (params?: any) => {
     const start = (page - 1) * limit
     const end = start + limit
     
-    // For each transplantation, get follow-up info
+    // Enrich data with follow-up information
     const enrichedData = filtered.slice(start, end).map((tx: any) => {
-      const txFollowUps = followUps.filter((f: any) => f.transplantation_id === tx._id)
-      const latestFollowUp = txFollowUps.sort((a: any, b: any) => 
-        new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
-      )[0]
+      const latestFollowUp = latestFollowUpMap.get(tx._id)
       
       return {
         ...tx,
         _id: tx._id,
-        followUpCount: txFollowUps.length,
+        followUpCount: followUpCountMap.get(tx._id) || 0,
         latestFollowUp: latestFollowUp ? {
           id: latestFollowUp._id,
           visitDate: latestFollowUp.visitDate,
@@ -178,10 +195,10 @@ export const createRejectionEpisode = async (data: any) => {
   return res.data
 }
 
-// Adverse Events
-export const getAdverseEvents = async (followupId: string) => {
+// Get adverse events by treatment ID (not follow-up)
+export const getAdverseEventsByTreatment = async (treatmentId: string) => {
   try {
-    const res = await api.get(`/adverse-events/by-followup/${followupId}`)
+    const res = await api.get(`/adverse-events/by-treatment/${treatmentId}`)
     return res.data
   } catch (error) {
     console.error("Error fetching adverse events:", error)
@@ -194,6 +211,15 @@ export const createAdverseEvent = async (data: any) => {
   return res.data
 }
 
+export const updateAdverseEvent = async (id: string, data: any) => {
+  const res = await api.patch(`/adverse-events/${id}`, data)
+  return res.data
+}
+
+export const deleteAdverseEvent = async (id: string) => {
+  const res = await api.delete(`/adverse-events/${id}`)
+  return res.data
+}
 // Adherence Assessments
 export const getAdherenceAssessments = async (followupId: string) => {
   try {

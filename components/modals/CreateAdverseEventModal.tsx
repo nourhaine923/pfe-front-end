@@ -9,7 +9,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onCreated: () => void
-  followUpId: string | null
+  treatmentId: string | null 
   showToast?: (message: string, type?: "success" | "error") => void
 }
 
@@ -61,7 +61,7 @@ export default function CreateAdverseEventModal({ isOpen, onClose, onCreated, fo
     try {
       setLoading(true)
       await api.post("/adverse-events", {
-        followup_id: followUpId,
+        treatment_id: treatmentId,
         eventType: form.eventType,
         severity: form.severity,
         date: form.date,

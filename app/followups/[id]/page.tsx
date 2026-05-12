@@ -243,14 +243,14 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
                   <circle 
                     cx="48" cy="48" r="42" fill="none" stroke="#8b5cf6" strokeWidth="6" 
                     strokeDasharray="263.89" 
-                    strokeDashoffset={263.89 - (scoreValue / 120) * 263.89}
+                    strokeDashoffset={263.89 - (scoreValue / 100) * 263.89}
                     strokeLinecap="round"
                     className="transition-all duration-700 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-2xl font-bold text-purple-700">{scoreValue}</span>
-                  <span className="text-[10px] text-gray-400">/120</span>
+                  <span className="text-[10px] text-gray-400">/100</span>
                 </div>
               </div>
               
@@ -331,7 +331,7 @@ function ScoreCard2({ followUpId, transplantationId }: { followUpId: string; tra
                     <div class="p-5 space-y-3">
                       <div class="text-center mb-4">
                         <span class="text-3xl font-bold text-purple-600">${scoreValue}</span>
-                        <span class="text-gray-400"> / 120</span>
+                        <span class="text-gray-400"> / 100</span>
                         <div class="mt-2 inline-flex px-3 py-1 rounded-full ${level.bg}">
                           <span class="text-sm font-semibold ${level.color}">${level.label}</span>
                         </div>
@@ -389,6 +389,7 @@ export default function FollowUpDetailsPage() {
   const [activeTab, setActiveTab] = useState("vital-signs")
   const [toast, setToast] = useState<{ message: string; type?: string } | null>(null)
   const [transplantationId, setTransplantationId] = useState<string | null>(null)
+  const [selectedTreatmentId, setSelectedTreatmentId] = useState<string | null>(null)
   
   // Modal states
   const [adverseEventOpen, setAdverseEventOpen] = useState(false)
@@ -850,24 +851,87 @@ export default function FollowUpDetailsPage() {
                     <div>
                       <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-semibold text-gray-900">Adverse Events</h2>
-                        <button onClick={() => setAdverseEventOpen(true)} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50">
-                          <Plus className="h-4 w-4" /> Add
-                        </button>
                       </div>
-                      {fullData?.adverseEvents && fullData.adverseEvents.length > 0 ? (
-                        <div className="space-y-3">
-                          {fullData.adverseEvents.map((event, idx) => (
-                            <div key={idx} className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                              <div className="flex justify-between"><p className="font-medium">{event.eventType}</p><span className={`px-2 py-1 text-xs rounded-full ${getSeverityColor(event.severity)}`}>{event.severity}</span></div>
-                              <p className="text-sm mt-1">{formatDate(event.date)}</p>
-                              {event.comment && <p className="text-sm text-gray-600 mt-2">{event.comment}</p>}
+                      
+                      {fullData?.therapeuticTreatments && fullData.therapeuticTreatments.length > 0 ? (
+                        <div className="space-y-6">
+                          {fullData.therapeuticTreatments.map((treatment) => (
+                            <div key={treatment._id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                              {/* Treatment Header */}
+                              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                <div>
+                                  <h3 className="font-semibold text-gray-800">{treatment.drugName}</h3>
+                                  <p className="text-xs text-gray-500">
+                                    {treatment.dosage} {treatment.dosageUnit} - {treatment.route}
+                                    {treatment.startDate && ` | Started: ${formatDate(treatment.startDate)}`}
+                                    {treatment.endDate && ` | Ended: ${formatDate(treatment.endDate)}`}
+                                  </p>
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                    // Store treatment ID to associate adverse event with this treatment
+                                    setSelectedTreatmentId(treatment._id)
+                                    setAdverseEventOpen(true)
+                                  }} 
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50"
+                                >
+                                  <Plus className="h-4 w-4" /> Add Adverse Event
+                                </button>
+                              </div>
+                              
+                              {/* Adverse Events List for this Treatment */}
+                              <div className="p-4">
+                                {fullData.adverseEvents && fullData.adverseEvents.filter(
+                                  (event) => event.treatment_id === treatment._id
+                                ).length > 0 ? (
+                                  <div className="space-y-3">
+                                    {fullData.adverseEvents
+                                      .filter((event) => event.treatment_id === treatment._id)
+                                      .map((event, idx) => (
+                                        <div key={idx} className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                                          <div className="flex justify-between items-start">
+                                            <div>
+                                              <p className="font-medium text-gray-800">{event.eventType}</p>
+                                              <p className="text-sm text-gray-600 mt-1">
+                                                Date: {formatDate(event.date)}
+                                              </p>
+                                              {event.comment && (
+                                                <p className="text-sm text-gray-500 mt-2 italic">
+                                                  "{event.comment}"
+                                                </p>
+                                              )}
+                                            </div>
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(event.severity)}`}>
+                                              {event.severity}
+                                            </span>
+                                          </div>
+                                          {event.eventType === "Infection" && (
+                                            <div className="mt-2 pt-2 border-t border-orange-200 text-sm">
+                                              {event.infectionType && (
+                                                <p className="text-gray-600">Type: {event.infectionType}</p>
+                                              )}
+                                              {event.infectionSeverity && (
+                                                <p className="text-gray-600">Infection Severity: {event.infectionSeverity}</p>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-6 text-gray-400 text-sm">
+                                    No adverse events recorded for this treatment
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
                           <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                          <p>No adverse events recorded</p>
+                          <p>No treatments recorded yet</p>
+                          <p className="text-xs mt-1">Add a therapeutic treatment first to record adverse events</p>
                         </div>
                       )}
                     </div>
@@ -960,7 +1024,7 @@ export default function FollowUpDetailsPage() {
         </div>
 
         {/* CREATE MODALS */}
-        <CreateAdverseEventModal isOpen={adverseEventOpen} onClose={() => setAdverseEventOpen(false)} onCreated={() => fetchFollowUpData(currentFollowUpId)} followUpId={currentFollowUpId} showToast={showToast} />
+        <CreateAdverseEventModal isOpen={adverseEventOpen} onClose={() => setAdverseEventOpen(false)} onCreated={() => fetchFollowUpData(currentFollowUpId)} treatmentId={selectedTreatmentId} showToast={showToast} />
         <CreateFollowUpModal
           isOpen={createFollowUpOpen}
           onClose={() => setCreateFollowUpOpen(false)}

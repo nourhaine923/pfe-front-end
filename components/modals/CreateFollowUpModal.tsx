@@ -122,7 +122,7 @@ const SectionTitle = ({ title, icon: Icon }: { title: string; icon?: any }) => (
 
 export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showToast, preSelectedTransplantationId }: Props) {
   const [currentStep, setCurrentStep] = useState(1)
-  const totalSteps = 7
+  const totalSteps = 6 // Reduced from 7 (removed adverse events)
 
   // Step 1: Basic Follow-up Info
   const [basicForm, setBasicForm] = useState({
@@ -180,7 +180,7 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
     resolved: false
   })
 
-  // Step 6: Immunosuppression Regimen
+  // Step 6: Immunosuppression Regimen + Treatments + Adherence
   const [immunosuppressionForm, setImmunosuppressionForm] = useState({
     startDate: "",
     endDate: "",
@@ -192,7 +192,6 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
     sirolimus: false
   })
 
-  // Step 7: Treatments & Adherence & Adverse Events
   const [treatmentForm, setTreatmentForm] = useState({
     drugName: "",
     dosage: "",
@@ -208,15 +207,6 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
     date: "",
     adherencePercent: "",
     method: ""
-  })
-
-  const [adverseEventForm, setAdverseEventForm] = useState({
-    eventType: "",
-    severity: "",
-    date: "",
-    comment: "",
-    infectionSeverity: "",
-    infectionType: ""
   })
 
   const [loading, setLoading] = useState(false)
@@ -241,8 +231,6 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
   const dosageUnitOptions = ["mg", "g", "mcg", "mg/kg"]
   const routeOptions = ["Oral", "IV", "IM", "Subcutaneous"]
   const methodOptions = ["Patient Self-Report", "Pill Count", "Pharmacy Refill Records", "Electronic Monitoring"]
-  const eventTypeOptions = ["Infection", "Surgical Complication", "Cardiovascular Event", "Metabolic Disorder", "Drug Toxicity"]
-  const severityOptions = ["Mild", "Moderate", "Severe", "Life-threatening"]
 
   useEffect(() => {
     if (isOpen) {
@@ -251,7 +239,6 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
     }
   }, [isOpen])
 
-  // Handle pre-selected transplantation
   useEffect(() => {
     if (preSelectedTransplantationId && transplantations.length > 0 && isOpen) {
       const preselectedTx = transplantations.find(t => t._id === preSelectedTransplantationId)
@@ -317,7 +304,6 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
     setRejectionForm(prev => ({ ...prev, date: date }))
     setAdherenceForm(prev => ({ ...prev, date: date }))
     setTreatmentForm(prev => ({ ...prev, startDate: date }))
-    setAdverseEventForm(prev => ({ ...prev, date: date }))
     setImmunosuppressionForm(prev => ({ ...prev, startDate: date }))
   }
 
@@ -451,18 +437,8 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
       }).catch(e => console.error("Adherence error:", e)))
     }
 
-    // Adverse Event (optional)
-    if (adverseEventForm.eventType && adverseEventForm.severity) {
-      promises.push(api.post("/adverse-events", {
-        followup_id: followUpId,
-        eventType: adverseEventForm.eventType,
-        severity: adverseEventForm.severity,
-        date: adverseEventForm.date || basicForm.visitDate,
-        comment: adverseEventForm.comment || null,
-        infectionSeverity: adverseEventForm.infectionSeverity || null,
-        infectionType: adverseEventForm.infectionType || null
-      }).catch(e => console.error("Adverse event error:", e)))
-    }
+    // Note: Adverse Events removed - they should be linked to treatments, not follow-ups
+    // Users can add adverse events later from the follow-up details page
 
     await Promise.all(promises)
   }
@@ -532,8 +508,7 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
     "Biological Measurements",
     "Immunological Markers",
     "Rejection Episode",
-    "Immunosuppression",
-    "Treatments & More"
+    "Immunosuppression & Treatments"
   ]
 
   return (
@@ -683,7 +658,7 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
                 </>
               )}
 
-              {/* Step 6: Immunosuppression Regimen */}
+              {/* Step 6: Immunosuppression + Treatments + Adherence */}
               {currentStep === 6 && (
                 <>
                   <SectionTitle title="Immunosuppression Regimen" icon={Shield} />
@@ -702,12 +677,7 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
                       <CheckboxField label="Sirolimus" checked={immunosuppressionForm.sirolimus} onChange={(e: any) => setImmunosuppressionForm(prev => ({ ...prev, sirolimus: e.target.checked }))} />
                     </div>
                   </div>
-                </>
-              )}
 
-              {/* Step 7: Treatments, Adherence & Adverse Events */}
-              {currentStep === 7 && (
-                <>
                   <SectionTitle title="Therapeutic Treatment (Optional)" icon={Pill} />
                   <SelectField label="Drug Name" options={drugNameOptions} value={treatmentForm.drugName} onChange={(e: any) => setTreatmentForm(prev => ({ ...prev, drugName: e.target.value }))} />
                   <div className="grid grid-cols-2 gap-4">
@@ -720,13 +690,6 @@ export default function CreateFollowUpModal({ isOpen, onClose, onCreated, showTo
                   <SectionTitle title="Adherence Assessment (Optional)" icon={CheckCircle} />
                   <InputField label="Adherence Percentage (%)" type="number" min="0" max="100" value={adherenceForm.adherencePercent} onChange={(e: any) => setAdherenceForm(prev => ({ ...prev, adherencePercent: e.target.value }))} />
                   <SelectField label="Assessment Method" options={methodOptions} value={adherenceForm.method} onChange={(e: any) => setAdherenceForm(prev => ({ ...prev, method: e.target.value }))} />
-
-                  <SectionTitle title="Adverse Event (Optional)" icon={AlertCircle} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <SelectField label="Event Type" options={eventTypeOptions} value={adverseEventForm.eventType} onChange={(e: any) => setAdverseEventForm(prev => ({ ...prev, eventType: e.target.value }))} />
-                    <SelectField label="Severity" options={severityOptions} value={adverseEventForm.severity} onChange={(e: any) => setAdverseEventForm(prev => ({ ...prev, severity: e.target.value }))} />
-                  </div>
-                  <TextAreaField label="Comment" placeholder="Additional details..." value={adverseEventForm.comment} onChange={(e: any) => setAdverseEventForm(prev => ({ ...prev, comment: e.target.value }))} />
                 </>
               )}
             </div>

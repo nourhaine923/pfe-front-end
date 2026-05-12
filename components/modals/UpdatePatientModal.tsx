@@ -155,15 +155,14 @@ interface Patient {
   donorType?: string
   ageAtDonation?: number
   birthDate?: string
-  clinicalData?: {
+  clinicalData?: Array<{
     age_at_transplant?: number
-    blood_group?: string
     primary_nephropathy?: string
     dialysis_type?: string
     dialysis_duration?: number
     comorbidities?: string
     transplant_rank?: number
-  }
+  }>
   hlaTyping?: {
     hlaA1?: string
     hlaA2?: string
@@ -174,7 +173,6 @@ interface Patient {
     hlaDQ1?: string
     hlaDQ2?: string
   }
-  administrativeData?: any[]
 }
 
 interface Props {
@@ -207,7 +205,6 @@ export default function UpdatePatientModal({
     ageAtDonation: "",
     birthDate: "",
     age_at_transplant: "",
-    blood_group: "",
     primary_nephropathy: "",
     dialysis_type: "",
     dialysis_duration: "",
@@ -227,12 +224,10 @@ export default function UpdatePatientModal({
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<any>({})
 
-  // Helper function to check if string contains numbers
   const containsNumbers = (str: string): boolean => {
     return /\d/.test(str)
   }
 
-  // Helper function to validate string fields (no numbers allowed)
   const validateStringField = (value: string, fieldName: string): string | null => {
     if (value && containsNumbers(value)) {
       return `${fieldName} should not contain numbers`
@@ -240,7 +235,6 @@ export default function UpdatePatientModal({
     return null
   }
 
-  // Populate form when modal opens
   useEffect(() => {
     if (!patient) return
 
@@ -255,15 +249,12 @@ export default function UpdatePatientModal({
       patientRole: patient.patientRole || "",
       foreignPatient: patient.foreignPatient || false,
       donorType: patient.donorType || "",
-      ageAtDonation: patient.ageAtDonation?.toString() || "",
-      birthDate: patient.birthDate?.split("T")[0] || "",
-      age_at_transplant: patient.clinicalData?.age_at_transplant?.toString() || "",
-      blood_group: patient.clinicalData?.blood_group || "",
-      primary_nephropathy: patient.clinicalData?.primary_nephropathy || "",
-      dialysis_type: patient.clinicalData?.dialysis_type || "",
-      dialysis_duration: patient.clinicalData?.dialysis_duration?.toString() || "",
-      comorbidities: patient.clinicalData?.comorbidities || "",
-      transplant_rank: patient.clinicalData?.transplant_rank?.toString() || "",
+      age_at_transplant: patient.clinicalData?.[0]?.age_at_transplant?.toString() || "",
+      primary_nephropathy: patient.clinicalData?.[0]?.primary_nephropathy || "",
+      dialysis_type: patient.clinicalData?.[0]?.dialysis_type || "",
+      dialysis_duration: patient.clinicalData?.[0]?.dialysis_duration?.toString() || "",
+      comorbidities: patient.clinicalData?.[0]?.comorbidities || "",
+      transplant_rank: patient.clinicalData?.[0]?.transplant_rank?.toString() || "",
       hlaA1: patient.hlaTyping?.hlaA1 || "",
       hlaA2: patient.hlaTyping?.hlaA2 || "",
       hlaB1: patient.hlaTyping?.hlaB1 || "",
@@ -280,7 +271,6 @@ export default function UpdatePatientModal({
   const validateForm = (): boolean => {
     const newErrors: any = {}
     
-    // Required fields
     if (!form.firstName.trim()) newErrors.firstName = "First name is required"
     if (!form.lastName.trim()) newErrors.lastName = "Last name is required"
     if (!form.medicalRecordNumber.trim()) {
@@ -291,12 +281,10 @@ export default function UpdatePatientModal({
     if (!form.sex) newErrors.sex = "Sex is required"
     if (!form.bloodGroup) newErrors.bloodGroup = "Blood group is required"
     
-    // Validate string fields for numbers
     const stringFields = [
       { field: 'firstName', label: 'First name' },
       { field: 'lastName', label: 'Last name' },
       { field: 'donorType', label: 'Donor type' },
-      { field: 'blood_group', label: 'Blood group (clinical)' },
       { field: 'primary_nephropathy', label: 'Primary nephropathy' },
       { field: 'dialysis_type', label: 'Dialysis type' },
       { field: 'comorbidities', label: 'Comorbidities' }
@@ -310,7 +298,6 @@ export default function UpdatePatientModal({
       }
     })
     
-    // Role-specific validation
     if (form.patientRole === "donor") {
       if (!form.donorType.trim()) newErrors.donorType = "Donor type is required"
       if (!form.ageAtDonation) newErrors.ageAtDonation = "Age at donation is required"
@@ -336,7 +323,7 @@ export default function UpdatePatientModal({
     return Object.keys(newErrors).length === 0
   }
 
-  const handleUpdate = async () => {
+    const handleUpdate = async () => {
     if (!patient) return
     if (!validateForm()) return
 
@@ -356,15 +343,14 @@ export default function UpdatePatientModal({
         donorType: form.patientRole === "donor" ? form.donorType : null,
         ageAtDonation: form.patientRole === "donor" ? (form.ageAtDonation ? Number(form.ageAtDonation) : null) : null,
         birthDate: form.patientRole === "recipient" ? form.birthDate : null,
-        clinicalData: form.patientRole === "recipient" ? {
+        clinicalData: form.patientRole === "recipient" ? [{
           age_at_transplant: form.age_at_transplant ? Number(form.age_at_transplant) : null,
-          blood_group: form.blood_group,
           primary_nephropathy: form.primary_nephropathy,
           dialysis_type: form.dialysis_type,
           dialysis_duration: form.dialysis_duration ? Number(form.dialysis_duration) : null,
           comorbidities: form.comorbidities,
           transplant_rank: form.transplant_rank ? Number(form.transplant_rank) : null
-        } : {},
+        }] : [],
         hlaTyping: {
           hlaA1: form.hlaA1,
           hlaA2: form.hlaA2,
@@ -375,7 +361,6 @@ export default function UpdatePatientModal({
           hlaDQ1: form.hlaDQ1,
           hlaDQ2: form.hlaDQ2
         },
-        administrativeData: patient.administrativeData || []
       }
 
       await api.patch(`/patients/${patient._id}`, payload)
@@ -401,11 +386,8 @@ export default function UpdatePatientModal({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      {/* Scroll container WITHOUT vertical padding */}
       <div className="max-h-[80vh] overflow-y-auto">
-        {/* Inner wrapper WITH padding */}
         <div className="px-4 py-4">
-          {/* Sticky header */}
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
             <h2 className="text-2xl font-bold text-teal-900">Update Patient</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -414,7 +396,6 @@ export default function UpdatePatientModal({
           </div>
 
           <div className="space-y-6">
-            {/* Identity Section */}
             <SectionTitle title="Identity" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField
@@ -475,7 +456,6 @@ export default function UpdatePatientModal({
               setForm={setForm}
             />
 
-            {/* Morphology Section */}
             <SectionTitle title="Morphology" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField
@@ -500,7 +480,6 @@ export default function UpdatePatientModal({
               />
             </div>
 
-            {/* Role Selection */}
             <SectionTitle title="Patient Role" />
             <SelectField
               label="Role"
@@ -512,7 +491,6 @@ export default function UpdatePatientModal({
               errors={errors}
             />
 
-            {/* Donor Specific Fields */}
             {form.patientRole === "donor" && (
               <div className="bg-teal-50 p-4 rounded-lg">
                 <SectionTitle title="Donor Information" />
@@ -542,7 +520,6 @@ export default function UpdatePatientModal({
               </div>
             )}
 
-            {/* Recipient Specific Fields */}
             {form.patientRole === "recipient" && (
               <>
                 <div className="bg-green-50 p-4 rounded-lg">
@@ -571,15 +548,7 @@ export default function UpdatePatientModal({
                     errors={errors}
                     setErrors={setErrors}
                   />
-                  <InputField
-                    label="Blood Group (Clinical)"
-                    name="blood_group"
-                    placeholder="Blood group"
-                    form={form}
-                    setForm={setForm}
-                    errors={errors}
-                    setErrors={setErrors}
-                  />
+                  {/* Blood Group (Clinical) field REMOVED */}
                   <InputField
                     label="Primary Nephropathy"
                     name="primary_nephropathy"
@@ -631,7 +600,6 @@ export default function UpdatePatientModal({
               </>
             )}
 
-            {/* HLA Typing Section */}
             <SectionTitle title="HLA Typing" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <InputField label="HLA A1" name="hlaA1" placeholder="HLA A1" form={form} setForm={setForm} errors={errors} setErrors={setErrors} />
@@ -645,7 +613,6 @@ export default function UpdatePatientModal({
             </div>
           </div>
 
-          {/* Sticky footer */}
           <div className="sticky bottom-0 bg-white pt-4 mt-6 border-t flex justify-end gap-3 z-10">
             <button
               onClick={handleClose}

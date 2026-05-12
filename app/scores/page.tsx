@@ -140,7 +140,7 @@ function ScoreBreakdownModal({ score, onClose }: { score: any; onClose: () => vo
       case "SCORE_1":
         return { title: "SCORE 1 - Pre-transplant Risk", icon: Zap, color: "red", maxValue: 100 }
       case "SCORE_2":
-        return { title: "SCORE 2 - Post-transplant Risk", icon: Activity, color: "purple", maxValue: 120 }
+        return { title: "SCORE 2 - Post-transplant Risk", icon: Activity, color: "purple", maxValue: 100 }
       case "SCORE_3":
         return { title: "SCORE 3 - Success Probability", icon: Target, color: "teal", maxValue: 100 }
       default:
@@ -612,21 +612,21 @@ export default function ScoresPage() {
                       )}
                       
                       {/* Urgency Level - Single progress bar showing urgency percentage */}
-                      {probability1 && (
+                      {score1 && (
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Urgency Level:</span>
-                            <span className={`font-semibold ${score1?.value >= 70 ? 'text-red-600' : score1?.value >= 40 ? 'text-yellow-600' : 'text-green-600'}`}>
-                              {score1?.value || 0}%
+                            <span className={`font-semibold ${score1.value >= 70 ? 'text-red-600' : score1.value >= 40 ? 'text-yellow-600' : 'text-green-600'}`}>
+                              {score1.value}%
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
-                              className={`h-2 rounded-full ${score1?.value >= 70 ? 'bg-red-500' : score1?.value >= 40 ? 'bg-yellow-500' : 'bg-green-500'}`} 
-                              style={{ width: `${score1?.value || 0}%` }} 
+                              className={`h-2 rounded-full ${score1.value >= 70 ? 'bg-red-500' : score1.value >= 40 ? 'bg-yellow-500' : 'bg-green-500'}`} 
+                              style={{ width: `${score1.value}%` }} 
                             />
                           </div>
-                          <p className="text-xs text-gray-500 text-center mt-2">{probability1.label}</p>
+                          <p className="text-xs text-gray-500 text-center mt-2">{probability1?.label}</p>
                         </div>
                       )}
                       
@@ -638,7 +638,7 @@ export default function ScoresPage() {
                     </div>
                   </div>
 
-                  {/* SCORE 2 Card - Post-Transplant Risk */}
+                  {/* SCORE 2 Card - Follow-up Risk Score */}
                   <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all hover:shadow-xl">
                     <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
                       <div className="flex items-center justify-between">
@@ -648,17 +648,19 @@ export default function ScoresPage() {
                           </div>
                           <h3 className="text-white font-semibold text-lg">Follow-up Risk Score</h3>
                         </div>
-                        {score2 && (
-                          <button onClick={() => setSelectedScore(score2)} className="p-1.5 bg-white/20 rounded-lg text-white text-xs hover:bg-white/30">
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <div className="flex gap-2">
+                          {score2 && (
+                            <button onClick={() => setSelectedScore(score2)} className="p-1.5 bg-white/20 rounded-lg text-white text-xs hover:bg-white/30">
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <p className="text-purple-100 text-xs mt-1">Calculated per follow-up visit</p>
                     </div>
                     <div className="p-6">
                       <div className="text-center mb-4">
-                        <CircularProgress value={score2?.value || 0} max={120} color="purple" />
+                        <CircularProgress value={score2?.value || 0} max={100} color="purple" />
                       </div>
                       
                       {/* Priority Badge */}
@@ -669,17 +671,34 @@ export default function ScoresPage() {
                         </div>
                       )}
                       
-                      {/* Probability Info */}
-                      {probability2 && (
+                      {/* Risk Level - Single progress bar with dynamic colors (same as SCORE 1) */}
+                      {score2 && (
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Complication Risk:</span>
-                            <span className="font-semibold text-red-600">{probability2.risk}%</span>
+                            <span className="text-gray-600">Risk Level:</span>
+                            <span className={`font-semibold ${
+                              score2.value >= 80 ? 'text-red-600' : 
+                              score2.value >= 50 ? 'text-yellow-600' : 
+                              'text-green-600'
+                            }`}>
+                              {score2.value}%
+                            </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-red-500 h-2 rounded-full" style={{ width: `${probability2.risk}%` }} />
+                            <div 
+                              className={`h-2 rounded-full ${
+                                score2.value >= 80 ? 'bg-red-500' : 
+                                score2.value >= 50 ? 'bg-yellow-500' : 
+                                'bg-green-500'
+                              }`} 
+                              style={{ width: `${score2.value}%` }} 
+                            />
                           </div>
-                          <p className="text-xs text-gray-500 text-center mt-2">{probability2.label}</p>
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            {score2.value >= 80 ? "High Risk - Intensive Monitoring" : 
+                            score2.value >= 50 ? "Moderate Risk - Standard Monitoring" : 
+                            "Low Risk - Routine Monitoring"}
+                          </p>
                         </div>
                       )}
                       
@@ -730,24 +749,34 @@ export default function ScoresPage() {
                         </div>
                       )}
                       
-                      {/* Probability Info */}
-                      {probability3 && (
+                      {/* Success Probability - Single progress bar with dynamic colors (inverted logic) */}
+                      {score3 && (
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Success Probability:</span>
-                            <span className="font-semibold text-green-600">{probability3.success}%</span>
+                            <span className={`font-semibold ${
+                              score3.value >= 70 ? 'text-green-600' : 
+                              score3.value >= 50 ? 'text-yellow-600' : 
+                              'text-red-600'
+                            }`}>
+                              {score3.value}%
+                            </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${probability3.success}%` }} />
+                            <div 
+                              className={`h-2 rounded-full ${
+                                score3.value >= 70 ? 'bg-green-500' : 
+                                score3.value >= 50 ? 'bg-yellow-500' : 
+                                'bg-red-500'
+                              }`} 
+                              style={{ width: `${score3.value}%` }} 
+                            />
                           </div>
-                          <div className="flex justify-between text-sm mt-2">
-                            <span className="text-gray-600">Failure Risk:</span>
-                            <span className="font-semibold text-red-600">{probability3.risk}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-red-500 h-2 rounded-full" style={{ width: `${probability3.risk}%` }} />
-                          </div>
-                          <p className="text-xs text-gray-500 text-center mt-2">{probability3.label}</p>
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            {score3.value >= 70 ? "High Success Probability" : 
+                            score3.value >= 50 ? "Moderate Success Probability" : 
+                            "Low Success Probability"}
+                          </p>
                         </div>
                       )}
                       
@@ -791,7 +820,7 @@ export default function ScoresPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-xl font-bold text-gray-800">{score.value}</span>
                               <span className="text-xs text-gray-400">
-                                /{score.score_type === "SCORE_2" ? "120" : "100"}
+                                /{score.score_type === "SCORE_2" ? "100" : "100"}
                               </span>
                             </div>
                             <button

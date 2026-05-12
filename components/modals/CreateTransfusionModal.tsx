@@ -97,11 +97,11 @@ export default function CreateTransfusionModal({
           {/* Header */}
           <div className="sticky top-0 bg-white pb-4 mb-4 border-b z-10">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-100 rounded-full p-2">
-                <Droplet className="h-6 w-6 text-blue-600" />
+              <div className="bg-teal-100 rounded-full p-2">
+                <Droplet className="h-6 w-6 text-teal-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-blue-900">Record Transfusion Event</h2>
+                <h2 className="text-2xl font-bold text-teal-900">Add Transfusion Event</h2>
                 <p className="text-sm text-gray-500 mt-1">
                   {patientName ? `Recording for: ${patientName}` : "Record a new transfusion event"}
                 </p>
@@ -121,7 +121,7 @@ export default function CreateTransfusionModal({
                   type="date"
                   value={form.transfusionDate}
                   onChange={(e) => setForm(prev => ({ ...prev, transfusionDate: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function CreateTransfusionModal({
                 value={form.units}
                 onChange={(e) => setForm(prev => ({ ...prev, units: e.target.value }))}
                 placeholder="e.g., 2"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
 
@@ -150,7 +150,7 @@ export default function CreateTransfusionModal({
               <select
                 value={form.aboType}
                 onChange={(e) => setForm(prev => ({ ...prev, aboType: e.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
               >
                 <option value="">Select ABO type</option>
                 {aboTypes.map(type => (
@@ -171,7 +171,7 @@ export default function CreateTransfusionModal({
                   onChange={(e) => setForm(prev => ({ ...prev, indication: e.target.value }))}
                   rows={3}
                   placeholder="e.g., Anemia, Bleeding, Surgery, etc."
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function CreateTransfusionModal({
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>

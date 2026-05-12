@@ -54,7 +54,7 @@ export interface AdverseEvent {
   comment?: string
   infectionSeverity?: string
   infectionType?: string
-  followup_id: string
+  treatment_id: string  
 }
 
 export interface TherapeuticTreatment {

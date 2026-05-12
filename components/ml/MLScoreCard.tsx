@@ -108,14 +108,27 @@ export default function MLScoreCard({ patientData, onPredictionComplete }: MLSco
     
     try {
       const response = await api.post("/ml/predict-score1", formData)
-      // Transform the response to remove CKD references
       const data = response.data
+      
+      // Align risk levels with scoring rule system (0-100 scale)
+      let risk_level = ""
+      let urgency_status = ""
+      
+      if (data.score >= 70) {
+        risk_level = "High Urgency"
+        urgency_status = "High Urgency - Immediate Action Required"
+      } else if (data.score >= 40) {
+        risk_level = "Moderate Urgency"
+        urgency_status = "Moderate Urgency - Plan Within 3 Months"
+      } else {
+        risk_level = "Low Urgency"
+        urgency_status = "Low Urgency - Routine Monitoring"
+      }
+      
       const transformedPrediction: MLPrediction = {
         score: data.score,
-        risk_level: data.risk_level,
-        urgency_status: data.risk_level.includes("High") ? "High Urgency - Immediate Action Required" :
-                        data.risk_level.includes("Moderate") ? "Moderate Urgency - Plan Within 3 Months" :
-                        "Low Urgency - Routine Monitoring",
+        risk_level: risk_level,
+        urgency_status: urgency_status,
         confidence: data.confidence,
         probability_high_urgency: data.probability_ckd,
         probability_low_urgency: data.probability_no_ckd
@@ -130,23 +143,33 @@ export default function MLScoreCard({ patientData, onPredictionComplete }: MLSco
     }
   }
 
+  // Score ranges aligned with scoring rule system
+  // 0-39: Low Urgency (Green)
+  // 40-69: Moderate Urgency (Yellow)
+  // 70-100: High Urgency (Red)
   const getScoreColor = (score: number) => {
     if (score >= 70) return "text-red-600"
-    if (score >= 40) return "text-orange-600"
+    if (score >= 40) return "text-yellow-600"
     return "text-green-600"
   }
 
   const getScoreBgColor = (score: number) => {
     if (score >= 70) return "bg-red-100"
-    if (score >= 40) return "bg-orange-100"
+    if (score >= 40) return "bg-yellow-100"
     return "bg-green-100"
   }
 
+  const getProgressBarColor = (score: number) => {
+    if (score >= 70) return "bg-red-500"
+    if (score >= 40) return "bg-yellow-500"
+    return "bg-green-500"
+  }
+
   const getUrgencyIcon = (riskLevel: string) => {
-    if (riskLevel.includes("Very High") || riskLevel.includes("High Risk")) {
+    if (riskLevel === "High Urgency") {
       return <AlertCircle className="h-5 w-5 text-red-600" />
     }
-    if (riskLevel.includes("Moderate")) {
+    if (riskLevel === "Moderate Urgency") {
       return <Activity className="h-5 w-5 text-yellow-600" />
     }
     return <Shield className="h-5 w-5 text-green-600" />
@@ -263,7 +286,13 @@ export default function MLScoreCard({ patientData, onPredictionComplete }: MLSco
                 <div className="relative">
                   <svg className="w-28 h-28 transform -rotate-90">
                     <circle cx="56" cy="56" r="48" fill="none" stroke="#e9d5ff" strokeWidth="8" />
-                    <circle cx="56" cy="56" r="48" fill="none" stroke="#8b5cf6" strokeWidth="8" strokeDasharray="301.59" strokeDashoffset={301.59 - (prediction.score / 100) * 301.59} strokeLinecap="round" className="transition-all duration-700 ease-out" />
+                    <circle 
+                      cx="56" cy="56" r="48" fill="none" stroke="#8b5cf6" strokeWidth="8" 
+                      strokeDasharray="301.59" 
+                      strokeDashoffset={301.59 - (prediction.score / 100) * 301.59} 
+                      strokeLinecap="round" 
+                      className="transition-all duration-700 ease-out" 
+                    />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-3xl font-bold text-purple-700">{prediction.score}</span>
@@ -284,28 +313,24 @@ export default function MLScoreCard({ patientData, onPredictionComplete }: MLSco
                 </div>
               </div>
 
+              {/* Urgency Level Progress Bar - Aligned with scoring rules */}
               <div className="space-y-2 mb-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-red-600">High Urgency Probability</span>
-                    <span>{(prediction.probability_high_urgency * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-red-500 h-2 rounded-full" style={{ width: `${prediction.probability_high_urgency * 100}%` }} />
-                  </div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-600">Urgency Level:</span>
+                  <span className={`font-semibold ${getScoreColor(prediction.score)}`}>
+                    {prediction.score}%
+                  </span>
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-green-600">Low Urgency Probability</span>
-                    <span>{(prediction.probability_low_urgency * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${prediction.probability_low_urgency * 100}%` }} />
-                  </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full ${getProgressBarColor(prediction.score)}`} 
+                    style={{ width: `${prediction.score}%` }} 
+                  />
                 </div>
               </div>
-
-              <button onClick={() => setShowBreakdown(true)} className="mt-3 w-full text-center text-xs text-purple-600 hover:text-purple-700 font-medium">View Full Breakdown →</button>
+              <button onClick={() => setShowBreakdown(true)} className="mt-3 w-full text-center text-xs text-purple-600 hover:text-purple-700 font-medium">
+                View Full Breakdown →
+              </button>
 
               {showBreakdown && (<MLScoreBreakdown patientData={formData} onClose={() => setShowBreakdown(false)} />)}
             </div>

@@ -138,7 +138,6 @@ const validateDateNotAfterToday = (dateString: string, fieldName: string): strin
   const inputDate = new Date(dateString)
   const today = new Date()
   
-  // Reset time part for accurate comparison
   today.setHours(0, 0, 0, 0)
   inputDate.setHours(0, 0, 0, 0)
   
@@ -158,7 +157,6 @@ const validateDateNotExceedOneYear = (dateString: string, fieldName: string): st
   const oneYearFromNow = new Date()
   oneYearFromNow.setFullYear(today.getFullYear() + 1)
   
-  // Reset time part for accurate comparison
   today.setHours(0, 0, 0, 0)
   inputDate.setHours(0, 0, 0, 0)
   oneYearFromNow.setHours(0, 0, 0, 0)
@@ -233,6 +231,67 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
   const [transplantNumberValid, setTransplantNumberValid] = useState<boolean | null>(null)
   const [checkingTransplantNumber, setCheckingTransplantNumber] = useState(false)
 
+  // Check if a transplantation already exists for this donor-recipient pair
+  const checkExistingTransplantation = useCallback(async (donorId: string, recipientId: string) => {
+    if (!donorId || !recipientId) return null
+
+    try {
+      const res = await api.get("/transplantations", { 
+        params: { 
+          donor_id: donorId, 
+          recipient_id: recipientId,
+          limit: 1 
+        } 
+      })
+      const existingTx = res.data?.data || res.data
+      if (existingTx && existingTx.length > 0) {
+        return existingTx[0]
+      }
+      return null
+    } catch (err) {
+      console.error("Error checking existing transplantation:", err)
+      return null
+    }
+  }, [])
+
+  // Handle donor change
+  const handleDonorChange = async (donorId: string) => {
+    setForm(prev => ({ ...prev, donor_id: donorId }))
+    if (errors.donor_id) {
+      setErrors((prev: any) => ({ ...prev, donor_id: undefined }))
+    }
+    
+    // If recipient is already selected, check for existing transplantation
+    if (form.recipient_id && donorId) {
+      const existing = await checkExistingTransplantation(donorId, form.recipient_id)
+      if (existing) {
+        setErrors((prev: any) => ({ 
+          ...prev, 
+          donor_id: `❌ A transplantation already exists for this donor-recipient pair (${existing.transplantNumber})`
+        }))
+      }
+    }
+  }
+
+  // Handle recipient change
+  const handleRecipientChange = async (recipientId: string) => {
+    setForm(prev => ({ ...prev, recipient_id: recipientId }))
+    if (errors.recipient_id) {
+      setErrors((prev: any) => ({ ...prev, recipient_id: undefined }))
+    }
+    
+    // If donor is already selected, check for existing transplantation
+    if (form.donor_id && recipientId) {
+      const existing = await checkExistingTransplantation(form.donor_id, recipientId)
+      if (existing) {
+        setErrors((prev: any) => ({ 
+          ...prev, 
+          recipient_id: `❌ A transplantation already exists for this donor-recipient pair (${existing.transplantNumber})`
+        }))
+      }
+    }
+  }
+
   // Fetch patients when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -250,19 +309,15 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
       let currentPage = 1
       let totalPages = 1
       
-      // First, get the first page to know total pages
       const firstRes = await api.get("/patients", {
         params: { page: 1, limit: 100 }
       })
       
-      // Parse the first response
       if (firstRes.data.data && Array.isArray(firstRes.data.data)) {
         allPatients = [...firstRes.data.data]
         totalPages = firstRes.data.totalPages || 1
-        console.log(`Total pages: ${totalPages}, Total patients: ${firstRes.data.total}`)
       }
       
-      // Fetch remaining pages if any
       if (totalPages > 1) {
         const remainingPages = []
         for (let page = 2; page <= totalPages; page++) {
@@ -279,10 +334,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
           }
         }
       }
-      
-      console.log("Total patients fetched across all pages:", allPatients.length)
-      console.log("Donors:", allPatients.filter(p => p.patientRole === "donor").length)
-      console.log("Recipients:", allPatients.filter(p => p.patientRole === "recipient").length)
       
       setPatients(allPatients)
       
@@ -332,17 +383,14 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
     }
   }
 
-  // Handle transplant date change with validation (cannot exceed 1 year from today)
   const handleTransplantDateChange = (value: string) => {
     setForm(prev => ({ ...prev, transplantDate: value }))
     
-    // Clear previous error
     if (errors.transplantDate) {
       setErrors((prev: any) => ({ ...prev, transplantDate: undefined }))
     }
   }
 
-  // Handle EER start date change with validation (cannot be after today)
   const handleEerStartDateChange = (value: string) => {
     setForm(prev => ({
       ...prev,
@@ -352,7 +400,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
       }
     }))
     
-    // Clear previous error
     if (errors.eerStartDate) {
       setErrors((prev: any) => ({ ...prev, eerStartDate: undefined }))
     }
@@ -398,12 +445,10 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
     }))
   }
 
-  // Validate current step and return errors
   const validateCurrentStep = (): { isValid: boolean; errorMessages: string[] } => {
     const newErrors: any = {}
     const errorMessages: string[] = []
     
-    // STEP 1: Patient Selection
     if (step === 1) {
       if (!form.donor_id) {
         newErrors.donor_id = "Donor is required"
@@ -417,9 +462,15 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
         newErrors.recipient_id = "Donor and recipient cannot be the same"
         errorMessages.push("Donor and recipient cannot be the same")
       }
+      
+      // Check if there's already an existing transplantation error
+      if (errors.donor_id?.includes("already exists") || errors.recipient_id?.includes("already exists")) {
+        newErrors.donor_id = errors.donor_id
+        newErrors.recipient_id = errors.recipient_id
+        errorMessages.push("This donor-recipient pair already has an existing transplantation")
+      }
     }
     
-    // STEP 2: Pre-Transplant Assessment
     if (step === 2) {
       if (!form.preTransplantAssessment.ageAtTransplant) {
         newErrors.ageAtTransplant = "Age at transplant is required"
@@ -445,7 +496,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
         errorMessages.push("EER Modality is required")
       }
       
-      // Validate EER Start Date (cannot be after today)
       if (!form.preTransplantAssessment.eerStartDate) {
         newErrors.eerStartDate = "EER start date is required"
         errorMessages.push("EER start date is required")
@@ -473,7 +523,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
       }
     }
     
-    // STEP 3: Transplant Details
     if (step === 3) {
       if (!form.transplantNumber) {
         newErrors.transplantNumber = "Transplant number is required"
@@ -483,7 +532,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
         errorMessages.push("This transplant number already exists")
       }
       
-      // Validate Transplant Date (cannot exceed 1 year from today)
       if (!form.transplantDate) {
         newErrors.transplantDate = "Transplant date is required"
         errorMessages.push("Transplant date is required")
@@ -623,7 +671,7 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
                       options={donorOptions}
                       required
                       value={form.donor_id}
-                      onChange={(val: string) => handleChange("donor_id", val)}
+                      onChange={handleDonorChange}
                       error={errors.donor_id}
                     />
                     <SelectField
@@ -632,7 +680,7 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
                       options={recipientOptions}
                       required
                       value={form.recipient_id}
-                      onChange={(val: string) => handleChange("recipient_id", val)}
+                      onChange={handleRecipientChange}
                       error={errors.recipient_id}
                     />
                   </div>
@@ -681,7 +729,6 @@ export default function CreateTransplantationModal({ isOpen, onClose, onCreated,
                     />
                   </div>
 
-                  {/* Medical Conditions */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <CheckboxField
                       label="Diabetes"

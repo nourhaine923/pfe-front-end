@@ -1,4 +1,4 @@
-"use client"
+"use client" 
 
 import { useState } from "react"
 import { useAuth } from "@/features/auth/context"
@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation"
 import 'boxicons/css/boxicons.min.css'
 import Toast from "@/components/ui/Toast"
 import PendingApprovalModal from "@/components/modals/PendingApprovalModal"
-
+// LoginPage Component - Handles user authentication with sign in and sign up forms
 export default function LoginPage() {
   const { login, register } = useAuth()
   const router = useRouter()
-
+// State for form inputs, loading, and toast notifications
   const [toast, setToast] = useState("")
   const [toastType, setToastType] = useState<"success" | "error" | "warning">("success")
   const [email, setEmail] = useState("")
@@ -262,9 +262,6 @@ export default function LoginPage() {
               <a href="#" className="icons border border-gray-300 rounded-full inline-flex justify-center items-center w-10 h-10 hover:bg-[#DAFIDE] transition-colors">
                 <i className='bx bxl-google text-xl text-[#235347]'></i>
               </a>
-              <a href="#" className="icons border border-gray-300 rounded-full inline-flex justify-center items-center w-10 h-10 hover:bg-[#DAFIDE] transition-colors">
-                <i className='bx bxl-linkedin text-xl text-[#235347]'></i>
-              </a>
             </div><br/>
             
             <span className="text-xs text-gray-500 mb-4">Register with E-mail</span>
@@ -322,9 +319,6 @@ export default function LoginPage() {
             <div className="social-icons flex gap-3 mb-6">
               <a href="#" className="icons border border-gray-300 rounded-full inline-flex justify-center items-center w-10 h-10 hover:bg-[#DAFIDE] transition-colors">
                 <i className='bx bxl-google text-xl text-[#235347]'></i>
-              </a>
-              <a href="#" className="icons border border-gray-300 rounded-full inline-flex justify-center items-center w-10 h-10 hover:bg-[#DAFIDE] transition-colors">
-                <i className='bx bxl-linkedin text-xl text-[#235347]'></i>
               </a>
             </div><br/>
             

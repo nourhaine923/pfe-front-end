@@ -146,7 +146,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
     ageAtDonation: "",
     birthDate: "",
     age_at_transplant: "",
-    blood_group: "",
     primary_nephropathy: "",
     dialysis_type: "",
     dialysis_duration: "",
@@ -174,7 +173,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
     const birthDate = new Date(dateString)
     const today = new Date()
     
-    // Reset time part for accurate comparison
     today.setHours(0, 0, 0, 0)
     birthDate.setHours(0, 0, 0, 0)
     
@@ -182,7 +180,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
       return "Birth date cannot be in the future"
     }
     
-    // Check if date is too old (optional: max 120 years)
     const maxAgeDate = new Date()
     maxAgeDate.setFullYear(today.getFullYear() - 120)
     if (birthDate < maxAgeDate) {
@@ -231,7 +228,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
   const handleBirthDateChange = (value: string) => {
     setForm(prev => ({ ...prev, birthDate: value }))
     
-    // Clear previous birth date error
     if (errors.birthDate) {
       setErrors((prev: any) => ({ ...prev, birthDate: undefined }))
     }
@@ -239,7 +235,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
 
   const containsNumbers = (str: string): boolean => /\d/.test(str)
 
-  // Validate current step and return errors
   const validateCurrentStep = (): { isValid: boolean; errorMessages: string[] } => {
     const newErrors: any = {}
     const errorMessages: string[] = []
@@ -298,7 +293,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
             errorMessages.push("Age must be between 18 and 70")
           }
         }
-        // Morphology for donors - height and weight 
         if (!form.heightCm || form.heightCm === "") {
           newErrors.heightCm = "Height is required for donors"
           errorMessages.push("Height is required for donors")
@@ -332,7 +326,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
             errorMessages.push(birthDateError)
           }
         }
-        // Morphology for recipients - height and weight
         if (!form.heightCm || form.heightCm === "") {
           newErrors.heightCm = "Height is required"
           errorMessages.push("Height is required")
@@ -357,7 +350,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
     }
     
     if (step === 3 && form.patientRole === "recipient") {
-      // Clinical data validation 
       if (form.age_at_transplant && isNaN(Number(form.age_at_transplant))) {
         newErrors.age_at_transplant = "Age at transplant must be a number"
         errorMessages.push("Age at transplant must be a number")
@@ -411,7 +403,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
         patientRole: form.patientRole,
       }
 
-      // Morphology for both donor and recipient
       if (form.heightCm && form.heightCm !== "") {
         payload.heightCm = Number(form.heightCm)
       }
@@ -428,18 +419,19 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
         if (form.birthDate && form.birthDate !== "") payload.birthDate = form.birthDate
       }
 
-      // Clinical Data for recipients
+      // Clinical Data for recipients (blood_group removed)
       if (form.patientRole === "recipient") {
         const clinicalData: any = {}
         if (form.age_at_transplant && form.age_at_transplant !== "") clinicalData.age_at_transplant = Number(form.age_at_transplant)
-        if (form.blood_group && form.blood_group !== "") clinicalData.blood_group = form.blood_group
         if (form.primary_nephropathy && form.primary_nephropathy !== "") clinicalData.primary_nephropathy = form.primary_nephropathy
         if (form.dialysis_type && form.dialysis_type !== "") clinicalData.dialysis_type = form.dialysis_type
         if (form.dialysis_duration && form.dialysis_duration !== "") clinicalData.dialysis_duration = Number(form.dialysis_duration)
         if (form.comorbidities && form.comorbidities !== "") clinicalData.comorbidities = form.comorbidities
         if (form.transplant_rank && form.transplant_rank !== "") clinicalData.transplant_rank = Number(form.transplant_rank)
         
-        if (Object.keys(clinicalData).length > 0) payload.clinicalData = clinicalData
+        if (Object.keys(clinicalData).length > 0) {
+          payload.clinicalData = [clinicalData]  
+        }
       }
 
       // HLA Typing
@@ -454,9 +446,6 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
       if (form.hlaDQ2 && form.hlaDQ2 !== "") hlaTyping.hlaDQ2 = form.hlaDQ2.toUpperCase()
       
       if (Object.keys(hlaTyping).length > 0) payload.hlaTyping = hlaTyping
-
-      // Administrative data (empty object as per schema)
-      payload.administrativeData = {}
 
       console.log("Sending payload:", payload)
 
@@ -709,13 +698,7 @@ export default function CreatePatientModal({ isOpen, onClose, onCreated, showToa
                         onChange={(val: string) => setForm(prev => ({ ...prev, age_at_transplant: val }))}
                         error={errors.age_at_transplant}
                       />
-                      <SelectField
-                        label="Blood Group (Clinical)"
-                        name="blood_group"
-                        options={bloodGroupOptions}
-                        value={form.blood_group}
-                        onChange={(val: string) => setForm(prev => ({ ...prev, blood_group: val }))}
-                      />
+                      {/* Blood Group (Clinical) field REMOVED */}
                       <InputField
                         label="Primary Nephropathy"
                         name="primary_nephropathy"

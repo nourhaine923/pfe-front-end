@@ -58,6 +58,7 @@ export default function FollowUpsPage() {
   const [activeSearch, setActiveSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type?: string } | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -112,7 +113,7 @@ export default function FollowUpsPage() {
     }
     
     fetchTransplantations()
-  }, [authLoading, user, router, activeSearch, currentPage])
+  }, [authLoading, user, router, activeSearch, currentPage,refreshKey])
 
   const showToast = (message: string, type: "success" | "error" | "warning" = "success") => {
     setToast({ message, type })
@@ -435,10 +436,10 @@ export default function FollowUpsPage() {
           onClose={() => setCreateOpen(false)}
           onCreated={() => {
             setCurrentPage(1)
-            fetchTransplantations()
+            setRefreshKey(prev => prev + 1) // Force refresh
             showToast("Follow-up created successfully")
           }}
-          showToast={showToast}
+           showToast={showToast}
         />
 
         {toast && <Toast message={toast.message} type={toast.type as any} onClose={() => setToast(null)} />}
