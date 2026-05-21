@@ -1,5 +1,4 @@
-// features/followup/types.ts
-
+//TypeScript knows what data structure to expect and prevent missmatche types
 export interface VitalSigns {
   _id?: string
   dateTime: string

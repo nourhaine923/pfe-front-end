@@ -1,5 +1,3 @@
-// features/followup/services.ts
-
 import api from "@/services/api"
 
 // Follow-up CRUD

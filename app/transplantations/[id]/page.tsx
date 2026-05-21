@@ -680,16 +680,51 @@ export default function TransplantationDetailsPage() {
 
         {/* Score Cards */}
         <ScoreCards transplantationId={transplantation._id} />
-        {/* ML SCORE 1 Card - Add this */}
-<div className="mb-8">
-  <MLScoreCard 
+{/* ML SCORE 1 Card */}
+        <div className="mb-8">
+          <MLScoreCard 
             patientData={{
-              age: transplantation.recipient?.birthDate ? 
-                new Date().getFullYear() - new Date(transplantation.recipient.birthDate).getFullYear() : 55,
-              htn: transplantation.preTransplantAssessment?.hypertension || false,
-              dm: transplantation.preTransplantAssessment?.diabetes || false,
-              cad: transplantation.preTransplantAssessment?.acc || false,
-              sc: transplantation.preTransplantAssessment?.serumCreatinine || 1.2
+              recipient_age: transplantation.recipient?.birthDate 
+                ? new Date().getFullYear() - new Date(transplantation.recipient.birthDate).getFullYear() 
+                : transplantation.preTransplantAssessment?.ageAtTransplant || 50,
+              donor_age: transplantation.donor?.ageAtDonation || 40,
+              diabetes: transplantation.preTransplantAssessment?.diabetes || false,
+              hypertension: transplantation.preTransplantAssessment?.hypertension || false,
+              previous_transplants: transplantation.preTransplantAssessment?.numberOfPreviousTransplants || 0,
+              cold_ischemia: transplantation.coldIschemiaHours || 10,
+              warm_ischemia: transplantation.warmIschemiaMinutes || 30,
+              donor_type: transplantation.donor?.donorType === "Living Related" || transplantation.donor?.donorType === "Living Unrelated" 
+                ? "Living" 
+                : transplantation.donor?.donorType === "Deceased Donor" || transplantation.donor?.donorType === "Cadaveric"
+                ? "Deceased"
+                : "Living",
+              eer_modality: transplantation.preTransplantAssessment?.eerModality === "Preemptive" 
+                ? "Preemptive"
+                : transplantation.preTransplantAssessment?.eerModality === "DP"
+                ? "Peritoneal"
+                : transplantation.preTransplantAssessment?.eerModality === "HD"
+                ? "Hemodialysis"
+                : "Hemodialysis",
+              bmi: transplantation.recipient?.bmi || 25,
+              acc: transplantation.preTransplantAssessment?.acc || false,
+              hbsag: transplantation.preTransplantAssessment?.hbsAg || false,
+              anti_hcv: transplantation.preTransplantAssessment?.antiHCV || false,
+              transfusion_history: transplantation.preTransplantAssessment?.transfusion || false,
+              serum_creatinine: transplantation.preTransplantAssessment?.serumCreatinine || 1.2,
+              nephropathy: (() => {
+                const nephropathy = transplantation.preTransplantAssessment?.nephropathyType || ""
+                const mapping: Record<string, string> = {
+                  "Diabetic": "Diabetic",
+                  "Glomerular": "Glomerulonephritis",
+                  "Glomerulonephritis": "Glomerulonephritis",
+                  "Vascular": "Hypertensive",
+                  "Hypertensive": "Hypertensive",
+                  "Hereditary": "Genetic",
+                  "NTIC": "Congenital",
+                  "NI": "Congenital"
+                }
+                return mapping[nephropathy] || "Genetic"
+              })()
             }}
             onPredictionComplete={(prediction) => {
               console.log("ML Prediction:", prediction)

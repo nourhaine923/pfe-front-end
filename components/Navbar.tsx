@@ -1,4 +1,3 @@
-// components/layout/Navbar.tsx
 "use client"
 
 import { useAuth } from "@/features/auth/context"

@@ -1,15 +1,57 @@
 // app/dashboard/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/features/auth/context";
+import { useRouter } from "next/navigation";
 import PatientsOverviewChart from "@/components/dashboard/PatientsOverviewChart";
 import ScoresDashboard from "@/components/dashboard/ScoresDashboard";
-import { BarChart3, Activity, TrendingUp } from "lucide-react";
+import { BarChart3, Activity, TrendingUp, Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"patients" | "scores">("patients");
+
+  useEffect(() => {
+    // Wait for authentication to complete
+    if (authLoading) return;
+
+    // If not authenticated, redirect to login
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    // Only NEPHROLOGIST can access dashboard
+    // ADMIN is NOT authorized
+    if (user.role !== "NEPHROLOGIST") {
+      router.push("/not-authorized");
+      return;
+    }
+  }, [authLoading, user, router]);
+
+  // Show loading spinner while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-12 w-12 text-teal-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user after loading (should be redirected by useEffect, but safe check)
+  if (!user) {
+    return null;
+  }
+
+  // If user is not NEPHROLOGIST, don't render (redirect will happen)
+  if (user.role !== "NEPHROLOGIST") {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

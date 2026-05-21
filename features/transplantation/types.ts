@@ -1,3 +1,4 @@
+//TypeScript knows what data structure to expect and prevent missmatche types
 export interface PreTransplantAssessment {
   ageAtTransplant: number
   diabetes: boolean
